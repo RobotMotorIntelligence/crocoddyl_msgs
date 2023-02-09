@@ -9,5 +9,5 @@ float32 cost
 float32 regularization
 float32 step_length
 float32 dynamic_feasibility
-float32 equality_infeasibility
-float32 inequality_infeasibility
+float32 equality_feasibility
+float32 inequality_feasibility
