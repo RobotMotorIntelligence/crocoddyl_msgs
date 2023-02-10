@@ -25,8 +25,12 @@ FIND_PACKAGE(catkin REQUIRED COMPONENTS
 ADD_MESSAGE_FILES(
   DIRECTORY msg
   FILES
-   SolverStatistics.msg
+   TimeInterval.msg
+   State.msg
+   Control.msg
    FeedbackGain.msg
+   SolverStatistics.msg
+   SolverTrajectory.msg
 )
 GENERATE_MESSAGES(
   DEPENDENCIES
