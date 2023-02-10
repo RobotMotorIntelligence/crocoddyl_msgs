@@ -1,4 +1,4 @@
-# This message describes the feedback gain computed by Crocoddyl solvers.
+# This message describes the feedback gain computed by the solver.
 #
 # A state-feedback gain is used to apply state feedback control.
 # Generally speaking, this is a matrix defined by the dimension of state and control spaces.
@@ -7,12 +7,10 @@
 # The values of this gain are stored in data array.
 # The entries of the matrix are stored in row-major order.
 # The entire first row is stored first, followed by the entire second row, and so on.
-#
-# The header specifies the time at which the state is published.
 
-
-Header header
-
+# This represents the dimension of the state and control
 uint32 nx
 uint32 nu
+
+# This represents the entries of the matrix allocated by row order. 
 float64[] data
