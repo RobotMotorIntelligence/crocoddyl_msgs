@@ -12,6 +12,8 @@
 
 #include "crocoddyl_msgs/SolverStatistics.h"
 
+namespace crocoddyl_msgs {
+
 class SolverStatisticsRosPublisher {
 public:
   /**
@@ -65,9 +67,12 @@ private:
   realtime_tools::RealtimePublisher<crocoddyl_msgs::SolverStatistics> pub_;
 };
 
-namespace py = pybind11;
+} // namespace crocoddyl_msgs
 
 PYBIND11_MODULE(solver_statistics_ros_publisher_py, m) {
+  namespace py = pybind11;
+  using namespace crocoddyl_msgs;
+
   int argc = 0;
   char **argv = nullptr;
   ros::init(argc, argv, "solver_statistics_ros_publisher_py",
@@ -80,7 +85,7 @@ PYBIND11_MODULE(solver_statistics_ros_publisher_py, m) {
              std::unique_ptr<SolverStatisticsRosPublisher, py::nodelete>>(
       m, "SolverStatisticsRosPublisher")
       .def(py::init<const std::string &>(),
-           py::arg("topic_mpc_statistics") = "/crocoddyl/solver_statisticss")
+           py::arg("topic") = "/crocoddyl/solver_statistics")
       .def("publish", &SolverStatisticsRosPublisher::publish,
            "Publish a solver statistic ROS message.\n\n"
            ":param iterations: number of solver iterations\n"
