@@ -1,6 +1,19 @@
 # This message provides essential diagnostics information for Crocoddyl solvers.
 
-time stamp
+# This is a message that holds data to diagnostics Crocoddyl solvers.
+#
+# The solver statistics is defined by:
+#  * the solver iterations,
+#  * the total computation time,
+#  * the total solving time,
+#  * the total cost,
+#  * the solver regularization,
+#  * the applied step length,
+#  * the dynamic feasibility,
+#  * the equality constraints feasibility, and
+#  * the inequality constraints feasibility.
+
+time header
 
 uint16 iterations
 float32 total_time

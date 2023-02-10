@@ -43,10 +43,10 @@ CATKIN_PACKAGE(
   CATKIN_DEPENDS message_runtime std_msgs
 )
 
-# Build the Python interface for the whole_body_mpc_msgs interface
+# Build the Python interface for the solver statistic publisher
 PYBIND11_ADD_MODULE(solver_statistics_ros_publisher_py MODULE src/solver_statistics_publisher.cpp)
-TARGET_INCLUDE_DIRECTORIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_INCLUDE_DIRS})# ${EIGEN3_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
-TARGET_LINK_LIBRARIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_LIBRARIES})# ${Boost_LIBRARIES} pinocchio::pinocchio -lrt)
+TARGET_INCLUDE_DIRECTORIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_INCLUDE_DIRS})
+TARGET_LINK_LIBRARIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_LIBRARIES})
 SET_TARGET_PROPERTIES(solver_statistics_ros_publisher_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION})
 
 # Install
