@@ -58,7 +58,6 @@ public:
       pub_.msg_.dynamic_feasibility = dynfeas;
       pub_.msg_.equality_feasibility = equafeas;
       pub_.msg_.inequality_feasibility = ineqfeas;
-
       pub_.unlockAndPublish();
     }
   }

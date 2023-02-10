@@ -12,6 +12,7 @@ MESSAGE(STATUS "All rights reserved.")
 MESSAGE(STATUS "Released under the BSD 3-Clause License.")
 
 # Find required packages
+FIND_PACKAGE(Eigen3 REQUIRED)
 FIND_PACKAGE(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
@@ -39,7 +40,7 @@ GENERATE_MESSAGES(
 
 # Define catkin dependencies
 CATKIN_PACKAGE(
-#   INCLUDE_DIRS include
+  INCLUDE_DIRS include
   CATKIN_DEPENDS message_runtime std_msgs
 )
 
@@ -48,6 +49,13 @@ PYBIND11_ADD_MODULE(solver_statistics_ros_publisher_py MODULE src/solver_statist
 TARGET_INCLUDE_DIRECTORIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_INCLUDE_DIRS})
 TARGET_LINK_LIBRARIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_LIBRARIES})
 SET_TARGET_PROPERTIES(solver_statistics_ros_publisher_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION})
+
+# Build the Python interface for the solver trajectory publisher
+PYBIND11_ADD_MODULE(solver_trajectory_ros_publisher_py MODULE src/solver_trajectory_publisher.cpp)
+TARGET_INCLUDE_DIRECTORIES(solver_trajectory_ros_publisher_py PRIVATE include ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+TARGET_LINK_LIBRARIES(solver_trajectory_ros_publisher_py PRIVATE ${catkin_LIBRARIES})
+SET_TARGET_PROPERTIES(solver_trajectory_ros_publisher_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION})
+
 
 # Install
 INSTALL(DIRECTORY include/${PROJECT_NAME}/  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
