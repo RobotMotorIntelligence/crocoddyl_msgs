@@ -44,24 +44,21 @@ CATKIN_PACKAGE(
   CATKIN_DEPENDS message_runtime std_msgs
 )
 
-# Build the Python interface for the solver statistic publisher and subscriber
-PYBIND11_ADD_MODULE(solver_statistics_ros_publisher_py MODULE src/solver_statistics_publisher.cpp)
-TARGET_INCLUDE_DIRECTORIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_INCLUDE_DIRS})
-TARGET_LINK_LIBRARIES(solver_statistics_ros_publisher_py PRIVATE ${catkin_LIBRARIES})
-SET_TARGET_PROPERTIES(solver_statistics_ros_publisher_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION})
+# Define the Python modules
+SET(${PROJECT_NAME}_PYBIND11_MODULE
+  solver_statistics_publisher
+  solver_statistics_subscriber
+  solver_trajectory_publisher
+)
 
-PYBIND11_ADD_MODULE(solver_statistics_ros_subscriber_py MODULE src/solver_statistics_subscriber.cpp)
-TARGET_INCLUDE_DIRECTORIES(solver_statistics_ros_subscriber_py PRIVATE ${catkin_INCLUDE_DIRS})
-TARGET_LINK_LIBRARIES(solver_statistics_ros_subscriber_py PRIVATE ${catkin_LIBRARIES})
-SET_TARGET_PROPERTIES(solver_statistics_ros_subscriber_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION})
+# Build the Python interface for the ROS publisher and subscriber
+FOREACH(PYBIND11_MODULE ${${PROJECT_NAME}_PYBIND11_MODULE})
+  PYBIND11_ADD_MODULE(${PYBIND11_MODULE}_py MODULE src/${PYBIND11_MODULE}.cpp)
+  TARGET_INCLUDE_DIRECTORIES(${PYBIND11_MODULE}_py PRIVATE include ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
+  TARGET_LINK_LIBRARIES(${PYBIND11_MODULE}_py PRIVATE ${catkin_LIBRARIES})
+  SET_TARGET_PROPERTIES(${PYBIND11_MODULE}_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION})
+  INSTALL(TARGETS ${PYBIND11_MODULE}_py LIBRARY DESTINATION ${CATKIN_GLOBAL_PYTHON_DESTINATION})
+ENDFOREACH(PYBIND11_MODULE ${${PROJECT_NAME}_PYBIND11_MODULE})
 
-# Build the Python interface for the solver trajectory publisher
-PYBIND11_ADD_MODULE(solver_trajectory_ros_publisher_py MODULE src/solver_trajectory_publisher.cpp)
-TARGET_INCLUDE_DIRECTORIES(solver_trajectory_ros_publisher_py PRIVATE include ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR})
-TARGET_LINK_LIBRARIES(solver_trajectory_ros_publisher_py PRIVATE ${catkin_LIBRARIES})
-SET_TARGET_PROPERTIES(solver_trajectory_ros_publisher_py PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_GLOBAL_PYTHON_DESTINATION})
-
-
-# Install
+# Install the include files
 INSTALL(DIRECTORY include/${PROJECT_NAME}/  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
-INSTALL(TARGETS solver_statistics_ros_publisher_py LIBRARY DESTINATION ${CATKIN_GLOBAL_PYTHON_DESTINATION})
