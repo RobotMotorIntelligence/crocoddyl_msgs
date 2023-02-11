@@ -13,7 +13,7 @@
 #  * the equality constraints feasibility, and
 #  * the inequality constraints feasibility.
 
-time header
+time stamp
 
 uint16 iterations
 float32 total_time

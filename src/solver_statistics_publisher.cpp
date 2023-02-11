@@ -48,7 +48,7 @@ public:
                const double dynfeas, const double equafeas,
                const double ineqfeas) {
     if (pub_.trylock()) {
-      pub_.msg_.header = ros::Time::now();
+      pub_.msg_.stamp = ros::Time::now();
       pub_.msg_.iterations = iterations;
       pub_.msg_.total_time = totaltime;
       pub_.msg_.solve_time = solvetime;
