@@ -138,6 +138,6 @@ PYBIND11_MODULE(solver_statistics_ros_publisher_py, m) {
            ":return: a list with the number of iterations, total time, solve\n"
            "time, cost, regularization, step legth, dynamic, equality and\n"
            "inequality feasibilities.")
-      .def("has_new_whole_body_state_message",
+      .def("has_new_msg",
            &SolverStatisticsRosSubscriber::has_new_msg);
 }

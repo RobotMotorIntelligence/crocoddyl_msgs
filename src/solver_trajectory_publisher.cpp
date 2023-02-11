@@ -43,7 +43,7 @@ public:
    * @param dts[in]     Vector of time durations of each interval
    * @param xs[in]      Vector of states of each interval
    * @param dxs[in]     Vector of state's rate of changes of each interval
-   * @param us[in]      Vector of feedforward control parameters of each
+   * @param us[in]      Vector of feed-forward control parameters of each
    * interval
    * @param Ks[in]      Vector of feedback gain in the control parametrized
    * space of each interval
