@@ -49,6 +49,7 @@ SET(${PROJECT_NAME}_PYBIND11_MODULE
   solver_statistics_publisher
   solver_statistics_subscriber
   solver_trajectory_publisher
+  solver_trajectory_subscriber
 )
 
 # Build the Python interface for the ROS publisher and subscriber
