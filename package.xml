@@ -13,8 +13,10 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>roscpp</depend>
   <depend>eigen</depend>
   <depend>std_msgs</depend>
+  <depend>realtime_tools</depend>
   <depend>pybind11_catkin</depend>
 
   <build_depend>rospy</build_depend>

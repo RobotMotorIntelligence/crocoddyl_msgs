@@ -132,7 +132,7 @@ private:
 
 } // namespace crocoddyl_msgs
 
-PYBIND11_MODULE(solver_trajectory_ros_publisher_py, m) {
+PYBIND11_MODULE(solver_trajectory_ros_subscriber_py, m) {
   namespace py = pybind11;
   using namespace crocoddyl_msgs;
 

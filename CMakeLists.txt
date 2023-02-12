@@ -14,7 +14,7 @@ MESSAGE(STATUS "Released under the BSD 3-Clause License.")
 # Find required packages
 FIND_PACKAGE(Eigen3 REQUIRED)
 FIND_PACKAGE(catkin REQUIRED COMPONENTS
-  rospy
+  roscpp
   std_msgs
   message_generation
   pybind11_catkin
