@@ -68,13 +68,13 @@ private:
 
 } // namespace crocoddyl_msgs
 
-PYBIND11_MODULE(solver_statistics_ros_publisher_py, m) {
+PYBIND11_MODULE(solver_statistics_publisher, m) {
   namespace py = pybind11;
   using namespace crocoddyl_msgs;
 
   int argc = 0;
   char **argv = nullptr;
-  ros::init(argc, argv, "solver_statistics_ros_publisher_py",
+  ros::init(argc, argv, "solver_statistics_publisher",
             ros::init_options::AnonymousName);
 
   m.doc() = "Python interface for publishing efficiently the Crocoddyl solver "

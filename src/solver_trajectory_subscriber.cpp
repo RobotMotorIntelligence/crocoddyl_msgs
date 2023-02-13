@@ -132,13 +132,13 @@ private:
 
 } // namespace crocoddyl_msgs
 
-PYBIND11_MODULE(solver_trajectory_ros_subscriber_py, m) {
+PYBIND11_MODULE(solver_trajectory_subscriber, m) {
   namespace py = pybind11;
   using namespace crocoddyl_msgs;
 
   int argc = 0;
   char **argv = nullptr;
-  ros::init(argc, argv, "solver_trajectory_ros_subscriber_py",
+  ros::init(argc, argv, "solver_trajectory_subscriber",
             ros::init_options::AnonymousName);
 
   m.doc() = "Python interface for subcribing efficiently the Crocoddyl solver "
