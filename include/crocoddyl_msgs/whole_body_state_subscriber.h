@@ -13,10 +13,8 @@
 
 #include <mutex>
 #include <ros/node_handle.h>
-#include <whole_body_state_msgs/WholeBodyState.h>
 
-#include <boost/python.hpp>
-
+// #include <boost/python.hpp>
 // #include "pinocchio_pybind11_compatibility.hpp"
 
 namespace crocoddyl_msgs {
