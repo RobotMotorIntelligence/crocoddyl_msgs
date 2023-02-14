@@ -25,16 +25,21 @@ class WholeBodyStateSubscriber {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  WholeBodyStateSubscriber(pinocchio::Model &m)
-      : WholeBodyStateSubscriber(m, "/crocoddyl/whole_body_state", "odom") {}
-
-  WholeBodyStateSubscriber(pinocchio::Model &m, const std::string &topic,
-                           const std::string &frame_id)
-      : spinner_(2), t_(0.), q_(Eigen::VectorXd::Zero(m.nq)),
-        v_(Eigen::VectorXd::Zero(m.nv)), a_(Eigen::VectorXd::Zero(m.nv)),
-        tau_(Eigen::VectorXd(m.njoints - 2)), has_new_msg_(false),
-        is_processing_msg_(false), last_msg_time_(0.), odom_frame_(frame_id),
-        model_(m), data_(m) {
+  /**
+   * @brief Initialize the whole-body state subscriber
+   *
+   * @param[in] model  Pinocchio model
+   * @param[in] topic  Topic name
+   * @param[in] frame  Odometry frame
+   */
+  WholeBodyStateSubscriber(pinocchio::Model &model, const std::string &topic,
+                           const std::string &frame)
+      : spinner_(2), t_(0.), q_(Eigen::VectorXd::Zero(model.nq)),
+        v_(Eigen::VectorXd::Zero(model.nv)),
+        a_(Eigen::VectorXd::Zero(model.nv)),
+        tau_(Eigen::VectorXd(model.njoints - 2)), has_new_msg_(false),
+        is_processing_msg_(false), last_msg_time_(0.), odom_frame_(frame),
+        model_(model), data_(model) {
     ros::NodeHandle n;
     sub_ = n.subscribe<whole_body_state_msgs::WholeBodyState>(
         topic, 1, &WholeBodyStateSubscriber::callback, this,
@@ -42,6 +47,9 @@ public:
     spinner_.start();
 
     std::cout << "Ready to receive whole-body states" << std::endl;
+  }
+  WholeBodyStateSubscriber(pinocchio::Model &model)
+      : WholeBodyStateSubscriber(model, "/crocoddyl/whole_body_state", "odom") {
   }
 
   ~WholeBodyStateSubscriber() = default;

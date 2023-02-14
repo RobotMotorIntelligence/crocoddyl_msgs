@@ -121,10 +121,10 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
   py::class_<WholeBodyStateSubscriber,
              std::unique_ptr<WholeBodyStateSubscriber, py::nodelete>>(
       m, "WholeBodyStateSubscriber")
-      .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def(py::init<pinocchio::Model &, const std::string &,
                     const std::string &>(),
-           py::arg("model"), py::arg("topic"), py::arg("frame_id"))
+           py::arg("model"), py::arg("topic"), py::arg("frame"))
+      .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("get_state", &WholeBodyStateSubscriber::get_state)
       .def("has_new_msg", &WholeBodyStateSubscriber::has_new_msg);
 }

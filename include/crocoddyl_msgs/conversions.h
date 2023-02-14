@@ -205,16 +205,18 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
  * @brief Conversion from whole_body_state_msgs::WholeBodyState to deserialized
  * quantities
  *
- * @param msg[in]   ROS message that contains the whole-body state
- * @param t[out]    Time in secs
- * @param q[out]    Configuration vector (dimension: model.nq)
- * @param v[out]    Velocity vector (dimension: model.nv)
- * @param a[out]    Acceleration vector (dimension: model.nv)
- * @param tau[out]  Torque vector (dimension: model.nv)
- * @param p[out]    Contact position
- * @param pd[out]   Contact velocity
- * @param f[out]    Contact force, type and status
- * @param s[out]    Contact surface and friction coefficient
+ * @param model[in]  Pinocchio model
+ * @param data[out]  Pinocchio data
+ * @param msg[in]    ROS message that contains the whole-body state
+ * @param t[out]     Time in secs
+ * @param q[out]     Configuration vector (dimension: model.nq)
+ * @param v[out]     Velocity vector (dimension: model.nv)
+ * @param a[out]     Acceleration vector (dimension: model.nv)
+ * @param tau[out]   Torque vector (dimension: model.nv)
+ * @param p[out]     Contact position
+ * @param pd[out]    Contact velocity
+ * @param f[out]     Contact force, type and status
+ * @param s[out]     Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
 void fromMsg(
@@ -251,7 +253,6 @@ void fromMsg(
                                 std::to_string(msg.joints.size()));
   }
   t = msg.time;
-
   // Retrieve the generalized position and velocity, and joint torques
   q.head<3>().setZero();
   q(3) = msg.centroidal.base_orientation.x;
