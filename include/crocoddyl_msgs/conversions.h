@@ -205,16 +205,16 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
  * @brief Conversion from whole_body_state_msgs::WholeBodyState to deserialized
  * quantities
  *
- * @param msg[in]        ROS message that contains the whole-body state
- * @param t[out]         Time in secs
- * @param q[out]         Configuration vector (dimension: model.nq)
- * @param v[out]         Velocity vector (dimension: model.nv)
- * @param a[out]         Acceleration vector (dimension: model.nv)
- * @param tau[out]       Torque vector (dimension: model.nv)
- * @param contacts[out]  Contact-state vector (optional: if we want to write the
- * contact information)
- * @note TODO: Contact type and contact location / velocity are not yet
- * supported.
+ * @param msg[in]   ROS message that contains the whole-body state
+ * @param t[out]    Time in secs
+ * @param q[out]    Configuration vector (dimension: model.nq)
+ * @param v[out]    Velocity vector (dimension: model.nv)
+ * @param a[out]    Acceleration vector (dimension: model.nv)
+ * @param tau[out]  Torque vector (dimension: model.nv)
+ * @param p[out]    Contact position
+ * @param pd[out]   Contact velocity
+ * @param f[out]    Contact force, type and status
+ * @param s[out]    Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
 void fromMsg(
