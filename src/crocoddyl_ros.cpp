@@ -9,6 +9,7 @@
 #include "crocoddyl_msgs/solver_statistics_subscriber.h"
 #include "crocoddyl_msgs/solver_trajectory_publisher.h"
 #include "crocoddyl_msgs/solver_trajectory_subscriber.h"
+#include "crocoddyl_msgs/whole_body_state_subscriber.h"
 
 PYBIND11_MODULE(crocoddyl_ros, m) {
   namespace py = pybind11;
@@ -16,8 +17,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
 
   int argc = 0;
   char **argv = nullptr;
-  ros::init(argc, argv, "crocoddyl_ros",
-            ros::init_options::AnonymousName);
+  ros::init(argc, argv, "crocoddyl_ros", ros::init_options::AnonymousName);
 
   m.doc() = "Python interface for publishing and subscribing efficiently to "
             "Crocoddyl messages in ROS.";
@@ -93,4 +93,14 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "feed-forward control, feedback gain, type of control and control\n"
            "parametrization.")
       .def("has_new_msg", &SolverTrajectoryRosSubscriber::has_new_msg);
+
+  py::class_<WholeBodyStateSubscriber,
+             std::unique_ptr<WholeBodyStateSubscriber, py::nodelete>>(
+      m, "WholeBodyStateSubscriber")
+      .def(py::init<pinocchio::Model &>(), py::arg("model"))
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"), py::arg("topic"), py::arg("frame_id"))
+      .def("get_state", &WholeBodyStateSubscriber::get_state)
+      .def("has_new_msg", &WholeBodyStateSubscriber::has_new_msg);
 }

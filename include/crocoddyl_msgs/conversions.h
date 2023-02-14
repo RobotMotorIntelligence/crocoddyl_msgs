@@ -9,10 +9,20 @@
 #ifndef CONVERSIONS_H_
 #define CONVERSIONS_H_
 
+#include "crocoddyl_msgs/whole_body_state.h"
+
+#include <pinocchio/algorithm/center-of-mass.hpp>
+#include <pinocchio/algorithm/centroidal.hpp>
+#include <pinocchio/algorithm/frames.hpp>
+#include <pinocchio/algorithm/joint-configuration.hpp>
+#include <pinocchio/container/aligned-vector.hpp>
+#include <pinocchio/multibody/data.hpp>
+#include <pinocchio/multibody/model.hpp>
+
 #include "crocoddyl_msgs/Control.h"
 #include "crocoddyl_msgs/FeedbackGain.h"
 #include "crocoddyl_msgs/State.h"
-#include <Eigen/Core>
+#include <whole_body_state_msgs/WholeBodyState.h>
 
 namespace crocoddyl_msgs {
 
@@ -183,6 +193,138 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
   fromMsg(msg.gain, K);
   type = static_cast<ControlType>(msg.input);
   parametrization = static_cast<ControlParametrization>(msg.parametrization);
+}
+
+/**
+ * @brief Conversion from whole_body_state_msgs::WholeBodyState to deserialized
+ * quantities
+ *
+ * @param msg[in]        ROS message that contains the whole-body state
+ * @param t[out]         Time in secs
+ * @param q[out]         Configuration vector (dimension: model.nq)
+ * @param v[out]         Velocity vector (dimension: model.nv)
+ * @param a[out]         Acceleration vector (dimension: model.nv)
+ * @param tau[out]       Torque vector (dimension: model.nv)
+ * @param contacts[out]  Contact-state vector (optional: if we want to write the
+ * contact information)
+ * @note TODO: Contact type and contact location / velocity are not yet
+ * supported.
+ */
+template <int Options, template <typename, int> class JointCollectionTpl>
+void fromMsg(
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+    pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
+    const whole_body_state_msgs::WholeBodyState &msg, double &t,
+    Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> v,
+    Eigen::Ref<Eigen::VectorXd> a, Eigen::Ref<Eigen::VectorXd> tau,
+    std::map<std::string, ContactState> &contacts) {
+  if (q.size() != model.nq) {
+    throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
+                                " but received " + std::to_string(q.size()));
+  }
+  if (v.size() != model.nv) {
+    throw std::invalid_argument("Expected v to be " + std::to_string(model.nv) +
+                                " but received " + std::to_string(v.size()));
+  }
+  if (a.size() != model.nv) {
+    throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
+                                " but received " + std::to_string(v.size()));
+  }
+  const std::size_t njoints = model.njoints - 2;
+  if (tau.size() != static_cast<int>(njoints)) {
+    throw std::invalid_argument("Expected tau to be " +
+                                std::to_string(njoints) + " but received " +
+                                std::to_string(tau.size()));
+  }
+  if (msg.joints.size() != static_cast<std::size_t>(njoints)) {
+    throw std::invalid_argument("Expected msg.joints to be " +
+                                std::to_string(njoints) + " but received " +
+                                std::to_string(msg.joints.size()));
+  }
+  t = msg.time;
+
+  // Retrieve the generalized position and velocity, and joint torques
+  q.head<3>().setZero();
+  q(3) = msg.centroidal.base_orientation.x;
+  q(4) = msg.centroidal.base_orientation.y;
+  q(5) = msg.centroidal.base_orientation.z;
+  q(6) = msg.centroidal.base_orientation.w;
+  v.head<3>().setZero();
+  v(3) = msg.centroidal.base_angular_velocity.x;
+  v(4) = msg.centroidal.base_angular_velocity.y;
+  v(5) = msg.centroidal.base_angular_velocity.z;
+  for (std::size_t j = 0; j < njoints; ++j) {
+    // TODO: Generalize to different floating-base types!
+    // TODO: Check if joint exists!
+    auto jointId = model.getJointId(msg.joints[j].name) - 2;
+    q(jointId + 7) = msg.joints[j].position;
+    v(jointId + 6) = msg.joints[j].velocity;
+    a(jointId + 6) = msg.joints[j].acceleration;
+    tau(jointId) = msg.joints[j].effort;
+  }
+  pinocchio::normalize(model, q);
+  pinocchio::centerOfMass(model, data, q, v);
+  q(0) = msg.centroidal.com_position.x - data.com[0](0);
+  q(1) = msg.centroidal.com_position.y - data.com[0](1);
+  q(2) = msg.centroidal.com_position.z - data.com[0](2);
+  v(0) = msg.centroidal.com_velocity.x - data.vcom[0](0);
+  v(1) = msg.centroidal.com_velocity.y - data.vcom[0](1);
+  v(2) = msg.centroidal.com_velocity.z - data.vcom[0](2);
+  v.head<3>() = Eigen::Quaterniond(q(6), q(3), q(4),
+                                   q(5))
+                    .toRotationMatrix()
+                    .transpose() *
+                v.head<3>(); // local frame
+
+  // Retrieve the contact information
+  for (const auto &contact : msg.contacts) {
+    // Contact pose
+    contacts[contact.name].position = pinocchio::SE3(
+        Eigen::Quaterniond(
+            contact.pose.orientation.w, contact.pose.orientation.x,
+            contact.pose.orientation.y, contact.pose.orientation.z),
+        Eigen::Vector3d(contact.pose.position.x, contact.pose.position.y,
+                        contact.pose.position.z));
+    // Contact velocity
+    contacts[contact.name].velocity = pinocchio::Motion(
+        Eigen::Vector3d(contact.velocity.linear.x, contact.velocity.linear.y,
+                        contact.velocity.linear.z),
+        Eigen::Vector3d(contact.velocity.angular.x, contact.velocity.angular.y,
+                        contact.velocity.angular.z));
+    // Contact wrench
+    contacts[contact.name].force = pinocchio::Force(
+        Eigen::Vector3d(contact.wrench.force.x, contact.wrench.force.y,
+                        contact.wrench.force.z),
+        Eigen::Vector3d(contact.wrench.torque.x, contact.wrench.torque.y,
+                        contact.wrench.torque.z));
+    // Surface normal and friction coefficient
+    contacts[contact.name].surface_normal.x() = contact.surface_normal.x;
+    contacts[contact.name].surface_normal.y() = contact.surface_normal.y;
+    contacts[contact.name].surface_normal.z() = contact.surface_normal.z;
+    contacts[contact.name].surface_friction = contact.friction_coefficient;
+    switch (contact.type) {
+    case whole_body_state_msgs::ContactState::LOCOMOTION:
+      contacts[contact.name].type = ContactTypeEnum::LOCOMOTION;
+      break;
+    case whole_body_state_msgs::ContactState::MANIPULATION:
+      contacts[contact.name].type = ContactTypeEnum::MANIPULATION;
+      break;
+    }
+    switch (contact.status) {
+    case whole_body_state_msgs::ContactState::UNKNOWN:
+      contacts[contact.name].state = ContactStateEnum::UNKNOWN;
+      break;
+    case whole_body_state_msgs::ContactState::ACTIVE:
+      contacts[contact.name].state = ContactStateEnum::CLOSED;
+      break;
+    case whole_body_state_msgs::ContactState::INACTIVE:
+      contacts[contact.name].state = ContactStateEnum::OPEN;
+      break;
+    case whole_body_state_msgs::ContactState::SLIPPING:
+      contacts[contact.name].state = ContactStateEnum::SLIPPING;
+      break;
+    }
+  }
 }
 
 } // namespace crocoddyl_msgs

@@ -9,12 +9,13 @@
 #ifndef CROCODDYL_MSG_SOLVER_TRAJECTORY_PUBLISHER_H_
 #define CROCODDYL_MSG_SOLVER_TRAJECTORY_PUBLISHER_H_
 
+#include "crocoddyl_msgs/conversions.h"
+
 #include <Eigen/Dense>
 #include <realtime_tools/realtime_publisher.h>
 #include <ros/node_handle.h>
 
 #include "crocoddyl_msgs/SolverTrajectory.h"
-#include "crocoddyl_msgs/conversions.h"
 
 namespace crocoddyl_msgs {
 

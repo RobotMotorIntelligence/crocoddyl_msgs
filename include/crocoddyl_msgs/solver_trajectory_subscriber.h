@@ -9,12 +9,13 @@
 #ifndef CROCODDYL_MSG_SOLVER_TRAJECTORY_SUBSCRIBER_H_
 #define CROCODDYL_MSG_SOLVER_TRAJECTORY_SUBSCRIBER_H_
 
+#include "crocoddyl_msgs/conversions.h"
+
 #include <Eigen/Dense>
 #include <mutex>
 #include <ros/node_handle.h>
 
 #include "crocoddyl_msgs/SolverTrajectory.h"
-#include "crocoddyl_msgs/conversions.h"
 
 namespace crocoddyl_msgs {
 
