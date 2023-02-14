@@ -25,6 +25,7 @@ public:
    * @brief Initialize the solver trajectory subscriber
    *
    * @param[in] topic  Topic name
+   * @param[in] frame  Odometry frame
    */
   SolverTrajectoryRosSubscriber(
       const std::string &topic = "/crocoddyl/solver_trajectory")
