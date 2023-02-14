@@ -263,13 +263,13 @@ void fromMsg(
   v(4) = msg.centroidal.base_angular_velocity.y;
   v(5) = msg.centroidal.base_angular_velocity.z;
   for (std::size_t j = 0; j < njoints; ++j) {
-    // TODO: Generalize to different floating-base types!
-    // TODO: Check if joint exists!
-    auto jointId = model.getJointId(msg.joints[j].name) - 2;
-    q(jointId + 7) = msg.joints[j].position;
-    v(jointId + 6) = msg.joints[j].velocity;
-    a(jointId + 6) = msg.joints[j].acceleration;
-    tau(jointId) = msg.joints[j].effort;
+    auto joint_id = model.getJointId(msg.joints[j].name);
+    auto q_idx = model.idx_qs[joint_id];
+    auto v_idx = model.idx_vs[joint_id];
+    q(q_idx) = msg.joints[j].position;
+    v(v_idx) = msg.joints[j].velocity;
+    a(v_idx) = msg.joints[j].acceleration;
+    tau(joint_id - 2) = msg.joints[j].effort;
   }
   pinocchio::normalize(model, q);
   pinocchio::centerOfMass(model, data, q, v);
