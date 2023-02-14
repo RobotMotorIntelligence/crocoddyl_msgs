@@ -9,7 +9,7 @@
 #ifndef CONVERSIONS_H_
 #define CONVERSIONS_H_
 
-#include "crocoddyl_msgs/whole_body_state.h"
+#include <pinocchio/fwd.hpp>
 
 #include <pinocchio/algorithm/center-of-mass.hpp>
 #include <pinocchio/algorithm/centroidal.hpp>
@@ -18,6 +18,8 @@
 #include <pinocchio/container/aligned-vector.hpp>
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/multibody/model.hpp>
+#include <pinocchio/spatial/force.hpp>
+#include <pinocchio/spatial/motion.hpp>
 
 #include "crocoddyl_msgs/Control.h"
 #include "crocoddyl_msgs/FeedbackGain.h"
@@ -29,6 +31,10 @@ namespace crocoddyl_msgs {
 enum ControlType { EFFORT = 0, ACCELERATION_CONTACTFORCE };
 
 enum ControlParametrization { POLYZERO = 0, POLYONE, POLYTWO };
+
+enum ContactTypeEnum { LOCOMOTION = 0, MANIPULATION };
+
+enum ContactStateEnum { UNKNOWN = 0, OPEN, CLOSED, SLIPPING };
 
 /**
  * @brief Conversion of Eigen to message for a given
@@ -217,7 +223,10 @@ void fromMsg(
     const whole_body_state_msgs::WholeBodyState &msg, double &t,
     Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> v,
     Eigen::Ref<Eigen::VectorXd> a, Eigen::Ref<Eigen::VectorXd> tau,
-    std::map<std::string, ContactState> &contacts) {
+    std::map<std::string, pinocchio::SE3> &p,
+    std::map<std::string, pinocchio::Motion> &pd,
+    std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>> &f,
+    std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
   if (q.size() != model.nq) {
     throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
                                 " but received " + std::to_string(q.size()));
@@ -279,51 +288,55 @@ void fromMsg(
   // Retrieve the contact information
   for (const auto &contact : msg.contacts) {
     // Contact pose
-    contacts[contact.name].position = pinocchio::SE3(
+    p[contact.name] = pinocchio::SE3(
         Eigen::Quaterniond(
             contact.pose.orientation.w, contact.pose.orientation.x,
             contact.pose.orientation.y, contact.pose.orientation.z),
         Eigen::Vector3d(contact.pose.position.x, contact.pose.position.y,
                         contact.pose.position.z));
     // Contact velocity
-    contacts[contact.name].velocity = pinocchio::Motion(
+    pd[contact.name] = pinocchio::Motion(
         Eigen::Vector3d(contact.velocity.linear.x, contact.velocity.linear.y,
                         contact.velocity.linear.z),
         Eigen::Vector3d(contact.velocity.angular.x, contact.velocity.angular.y,
                         contact.velocity.angular.z));
     // Contact wrench
-    contacts[contact.name].force = pinocchio::Force(
-        Eigen::Vector3d(contact.wrench.force.x, contact.wrench.force.y,
-                        contact.wrench.force.z),
-        Eigen::Vector3d(contact.wrench.torque.x, contact.wrench.torque.y,
-                        contact.wrench.torque.z));
-    // Surface normal and friction coefficient
-    contacts[contact.name].surface_normal.x() = contact.surface_normal.x;
-    contacts[contact.name].surface_normal.y() = contact.surface_normal.y;
-    contacts[contact.name].surface_normal.z() = contact.surface_normal.z;
-    contacts[contact.name].surface_friction = contact.friction_coefficient;
+    ContactTypeEnum type;
     switch (contact.type) {
     case whole_body_state_msgs::ContactState::LOCOMOTION:
-      contacts[contact.name].type = ContactTypeEnum::LOCOMOTION;
+      type = ContactTypeEnum::LOCOMOTION;
       break;
     case whole_body_state_msgs::ContactState::MANIPULATION:
-      contacts[contact.name].type = ContactTypeEnum::MANIPULATION;
+      type = ContactTypeEnum::MANIPULATION;
       break;
     }
+    ContactStateEnum status;
     switch (contact.status) {
     case whole_body_state_msgs::ContactState::UNKNOWN:
-      contacts[contact.name].state = ContactStateEnum::UNKNOWN;
+      status = ContactStateEnum::UNKNOWN;
       break;
     case whole_body_state_msgs::ContactState::ACTIVE:
-      contacts[contact.name].state = ContactStateEnum::CLOSED;
+      status = ContactStateEnum::CLOSED;
       break;
     case whole_body_state_msgs::ContactState::INACTIVE:
-      contacts[contact.name].state = ContactStateEnum::OPEN;
+      status = ContactStateEnum::OPEN;
       break;
     case whole_body_state_msgs::ContactState::SLIPPING:
-      contacts[contact.name].state = ContactStateEnum::SLIPPING;
+      status = ContactStateEnum::SLIPPING;
       break;
     }
+    f[contact.name] = {
+        pinocchio::Force(
+            Eigen::Vector3d(contact.wrench.force.x, contact.wrench.force.y,
+                            contact.wrench.force.z),
+            Eigen::Vector3d(contact.wrench.torque.x, contact.wrench.torque.y,
+                            contact.wrench.torque.z)),
+        type, status};
+    // Surface normal and friction coefficient
+    s[contact.name] = {Eigen::Vector3d(contact.surface_normal.x,
+                                       contact.surface_normal.y,
+                                       contact.surface_normal.z),
+                       contact.friction_coefficient};
   }
 }
 
