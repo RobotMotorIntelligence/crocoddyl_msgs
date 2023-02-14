@@ -241,7 +241,11 @@ void fromMsg(
     throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
                                 " but received " + std::to_string(v.size()));
   }
-  const std::size_t njoints = model.njoints - 2;
+  const std::size_t root_joint_id = model.frames[1].parent;
+  const std::size_t nv_root = model.joints[root_joint_id].idx_q() == 0
+                                  ? model.joints[root_joint_id].nv()
+                                  : 0;
+  const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints)) {
     throw std::invalid_argument("Expected tau to be " +
                                 std::to_string(njoints) + " but received " +
