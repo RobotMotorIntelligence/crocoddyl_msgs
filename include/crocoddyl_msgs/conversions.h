@@ -124,6 +124,219 @@ static inline void toMsg(crocoddyl_msgs::Control &msg,
 }
 
 /**
+ * @brief Conversion from vectors to `whole_body_state_msgs::WholeBodyState`
+ *
+ * @param model[in]  Pinocchio model
+ * @param data[out]  Pinocchio data
+ * @param msg[out]   ROS message that contains the whole-body state
+ * @param t[in]      Time in secs
+ * @param q[in]      Configuration vector (dimension: model.nq)
+ * @param v[in]      Generalized velocity (dimension: model.nv)
+ * @param a[in]      Generalized acceleration (dimension: model.nv)
+ * @param tau[in]    Joint effort
+ * @param p[in]      Contact position
+ * @param pd[in]     Contact velocity
+ * @param f[in]      Contact force, type and status
+ * @param s[in]      Contact surface and friction coefficient
+ */
+template <int Options, template <typename, int> class JointCollectionTpl>
+void toMsg(
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+    pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
+    whole_body_state_msgs::WholeBodyState &msg, const double t,
+    const Eigen::Ref<const Eigen::VectorXd> &q,
+    const Eigen::Ref<const Eigen::VectorXd> &v,
+    const Eigen::Ref<const Eigen::VectorXd> &a,
+    const Eigen::Ref<const Eigen::VectorXd> &tau,
+    const std::map<std::string, pinocchio::SE3> &p,
+    const std::map<std::string, pinocchio::Motion> &pd,
+    const std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>
+        &f,
+    const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+  if (q.size() != model.nq) {
+    throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
+                                " but received " + std::to_string(q.size()));
+  }
+  if (v.size() != model.nv) {
+    throw std::invalid_argument("Expected v to be 0 or " +
+                                std::to_string(model.nv) + " but received " +
+                                std::to_string(v.size()));
+  }
+  if (v.size() != model.nv) {
+    throw std::invalid_argument("Expected a to be 0 or " +
+                                std::to_string(model.nv) + " but received " +
+                                std::to_string(a.size()));
+  }
+  const std::size_t root_joint_id = model.frames[1].parent;
+  const std::size_t nv_root = model.joints[root_joint_id].idx_q() == 0
+                                  ? model.joints[root_joint_id].nv()
+                                  : 0;
+  const std::size_t njoints = model.nv - nv_root;
+  if (tau.size() != static_cast<int>(njoints)) {
+    throw std::invalid_argument("Expected tau to be 0 or " +
+                                std::to_string(njoints) + " but received " +
+                                std::to_string(tau.size()));
+  }
+  if (p.size() != pd.size()) {
+    throw std::invalid_argument(
+        "Dimension of contact pose and velocity does not match.");
+  }
+  if (p.size() != f.size()) {
+    throw std::invalid_argument(
+        "Dimension of contact pose and force does not match.");
+  }
+  if (p.size() != s.size()) {
+    throw std::invalid_argument(
+        "Dimension of contact pose and surface does not match.");
+  }
+  // Filling the time information
+  msg.time = t;
+  msg.header.stamp = ros::Time(t);
+  // Filling the centroidal state
+  pinocchio::centerOfMass(model, data, q, v);
+  // Center of mass
+  msg.centroidal.com_position.x = data.com[0].x();
+  msg.centroidal.com_position.y = data.com[0].y();
+  msg.centroidal.com_position.z = data.com[0].z();
+  // Velocity of the CoM expressed in the global frame.
+  msg.centroidal.com_velocity.x = data.vcom[0].x();
+  msg.centroidal.com_velocity.y = data.vcom[0].y();
+  msg.centroidal.com_velocity.z = data.vcom[0].z();
+  // Base
+  msg.centroidal.base_orientation.x = q(3);
+  msg.centroidal.base_orientation.y = q(4);
+  msg.centroidal.base_orientation.z = q(5);
+  msg.centroidal.base_orientation.w = q(6);
+  msg.centroidal.base_angular_velocity.x = v(3);
+  msg.centroidal.base_angular_velocity.y = v(4);
+  msg.centroidal.base_angular_velocity.z = v(5);
+  // Momenta
+  const pinocchio::Force &momenta =
+      pinocchio::computeCentroidalMomentum(model, data);
+  msg.centroidal.momenta.linear.x = momenta.linear().x();
+  msg.centroidal.momenta.linear.y = momenta.linear().y();
+  msg.centroidal.momenta.linear.z = momenta.linear().z();
+  msg.centroidal.momenta.angular.x = momenta.angular().x();
+  msg.centroidal.momenta.angular.y = momenta.angular().y();
+  msg.centroidal.momenta.angular.z = momenta.angular().z();
+  const pinocchio::Force &momenta_rate =
+      pinocchio::computeCentroidalMomentumTimeVariation(model, data);
+  msg.centroidal.momenta_rate.linear.x = momenta_rate.linear().x();
+  msg.centroidal.momenta_rate.linear.y = momenta_rate.linear().y();
+  msg.centroidal.momenta_rate.linear.z = momenta_rate.linear().z();
+  msg.centroidal.momenta_rate.angular.x = momenta_rate.angular().x();
+  msg.centroidal.momenta_rate.angular.y = momenta_rate.angular().y();
+  msg.centroidal.momenta_rate.angular.z = momenta_rate.angular().z();
+  // Filling the joint state
+  msg.joints.resize(njoints);
+  for (std::size_t j = 0; j < njoints; ++j) {
+    msg.joints[j].name = model.names[2 + j];
+    msg.joints[j].position = q(model.joints[1].nq() + j);
+    msg.joints[j].velocity = v(model.joints[1].nv() + j);
+    msg.joints[j].acceleration = a(model.joints[1].nv() + j);
+    msg.joints[j].effort = tau(j);
+  }
+  // Contacts
+  msg.contacts.resize(p.size());
+  std::size_t i = 0;
+  for (const auto &p_item : p) {
+    const std::string &name = p_item.first;
+    msg.contacts[i].name = name;
+    pinocchio::FrameIndex frame_id = model.getFrameId(msg.contacts[i].name);
+    if (static_cast<int>(frame_id) > model.nframes) {
+      throw std::runtime_error("Frame '" + name + "' not found.");
+    }
+    std::map<std::string, pinocchio::Motion>::const_iterator pd_it =
+        pd.find(name);
+    if (pd_it == pd.end()) {
+      throw std::runtime_error("Frame '" + name + "' not found in pd.");
+    }
+    std::map<std::string,
+             std::tuple<pinocchio::Force, uint8_t, uint8_t>>::const_iterator
+        f_it = f.find(name);
+    if (f_it == f.end()) {
+      throw std::runtime_error("Frame '" + name + "' not found in f.");
+    }
+    std::map<std::string, std::pair<Eigen::Vector3d, double>>::const_iterator
+        s_it = s.find(name);
+    if (s_it == s.end()) {
+      throw std::runtime_error("Frame '" + name + "' not found in s.");
+    }
+  }
+  for (const auto &p_item : p) {
+    const std::string &name = p_item.first;
+    const pinocchio::SE3 &pose = p_item.second;
+    pinocchio::SE3::Quaternion quaternion(pose.rotation());
+    msg.contacts[i].pose.position.x = pose.translation().x();
+    msg.contacts[i].pose.position.y = pose.translation().y();
+    msg.contacts[i].pose.position.z = pose.translation().z();
+    msg.contacts[i].pose.orientation.x = quaternion.x();
+    msg.contacts[i].pose.orientation.y = quaternion.y();
+    msg.contacts[i].pose.orientation.z = quaternion.z();
+    msg.contacts[i].pose.orientation.w = quaternion.w();
+    ++i;
+  }
+  i = 0;
+  for (const auto &pd_item : pd) {
+    const pinocchio::Motion &vel = pd_item.second;
+    msg.contacts[i].velocity.linear.x = vel.linear().x();
+    msg.contacts[i].velocity.linear.y = vel.linear().y();
+    msg.contacts[i].velocity.linear.z = vel.linear().z();
+    msg.contacts[i].velocity.angular.x = vel.angular().x();
+    msg.contacts[i].velocity.angular.y = vel.angular().y();
+    msg.contacts[i].velocity.angular.z = vel.angular().z();
+    ++i;
+  }
+  i = 0;
+  for (const auto &f_item : f) {
+    const std::tuple<pinocchio::Force, uint8_t, uint8_t> &force = f_item.second;
+    const pinocchio::Force &wrench = std::get<0>(force);
+    const ContactType type = static_cast<ContactType>(std::get<1>(force));
+    switch (type) {
+    case ContactType::LOCOMOTION:
+      msg.contacts[i].status = whole_body_state_msgs::ContactState::LOCOMOTION;
+      break;
+    case ContactType::MANIPULATION:
+      msg.contacts[i].status =
+          whole_body_state_msgs::ContactState::MANIPULATION;
+      break;
+    }
+    const ContactStatus status = static_cast<ContactStatus>(std::get<2>(force));
+    switch (status) {
+    case ContactStatus::UNKNOWN:
+      msg.contacts[i].status = whole_body_state_msgs::ContactState::UNKNOWN;
+      break;
+    case ContactStatus::SEPARATION:
+      msg.contacts[i].status = whole_body_state_msgs::ContactState::INACTIVE;
+      break;
+    case ContactStatus::STICKING:
+      msg.contacts[i].status = whole_body_state_msgs::ContactState::ACTIVE;
+      break;
+    case ContactStatus::SLIPPING:
+      msg.contacts[i].status = whole_body_state_msgs::ContactState::SLIPPING;
+      break;
+    }
+    msg.contacts[i].wrench.force.x = wrench.linear().x();
+    msg.contacts[i].wrench.force.y = wrench.linear().y();
+    msg.contacts[i].wrench.force.z = wrench.linear().z();
+    msg.contacts[i].wrench.torque.x = wrench.angular().x();
+    msg.contacts[i].wrench.torque.y = wrench.angular().y();
+    msg.contacts[i].wrench.torque.z = wrench.angular().z();
+    ++i;
+  }
+  i = 0;
+  for (const auto &s_item : s) {
+    const std::pair<Eigen::Vector3d, double> &surf = s_item.second;
+    const Eigen::Vector3d &norm = std::get<0>(surf);
+    msg.contacts[i].surface_normal.x = norm.x();
+    msg.contacts[i].surface_normal.y = norm.y();
+    msg.contacts[i].surface_normal.z = norm.z();
+    msg.contacts[i].friction_coefficient = std::get<1>(surf);
+    ++i;
+  }
+}
+
+/**
  * @brief Conversion of a feedback gain from a crocoddyl_msgs::FeedbackGain
  * message to Eigen
  *
@@ -210,9 +423,9 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
  * @param msg[in]    ROS message that contains the whole-body state
  * @param t[out]     Time in secs
  * @param q[out]     Configuration vector (dimension: model.nq)
- * @param v[out]     Velocity vector (dimension: model.nv)
- * @param a[out]     Acceleration vector (dimension: model.nv)
- * @param tau[out]   Torque vector (dimension: model.nv)
+ * @param v[out]     Generalized velocity (dimension: model.nv)
+ * @param a[out]     Generalized acceleratio (dimension: model.nv)
+ * @param tau[out]   Joint effort
  * @param p[out]     Contact position
  * @param pd[out]    Contact velocity
  * @param f[out]     Contact force, type and status

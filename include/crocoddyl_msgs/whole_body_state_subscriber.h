@@ -21,7 +21,7 @@
 
 namespace crocoddyl_msgs {
 
-class WholeBodyStateSubscriber {
+class WholeBodyStateRosSubscriber {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -32,8 +32,10 @@ public:
    * @param[in] topic  Topic name
    * @param[in] frame  Odometry frame
    */
-  WholeBodyStateSubscriber(pinocchio::Model &model, const std::string &topic,
-                           const std::string &frame)
+  WholeBodyStateRosSubscriber(
+      pinocchio::Model &model,
+      const std::string &topic = "/crocoddyl/whole_body_state",
+      const std::string &frame = "odom")
       : spinner_(2), t_(0.), q_(Eigen::VectorXd::Zero(model.nq)),
         v_(Eigen::VectorXd::Zero(model.nv)),
         a_(Eigen::VectorXd::Zero(model.nv)),
@@ -42,17 +44,12 @@ public:
         model_(model), data_(model) {
     ros::NodeHandle n;
     sub_ = n.subscribe<whole_body_state_msgs::WholeBodyState>(
-        topic, 1, &WholeBodyStateSubscriber::callback, this,
+        topic, 1, &WholeBodyStateRosSubscriber::callback, this,
         ros::TransportHints().tcpNoDelay());
     spinner_.start();
-
     std::cout << "Ready to receive whole-body states" << std::endl;
   }
-  WholeBodyStateSubscriber(pinocchio::Model &model)
-      : WholeBodyStateSubscriber(model, "/crocoddyl/whole_body_state", "odom") {
-  }
-
-  ~WholeBodyStateSubscriber() = default;
+  ~WholeBodyStateRosSubscriber() = default;
 
   /**
    * @brief Get the latest whole-body state

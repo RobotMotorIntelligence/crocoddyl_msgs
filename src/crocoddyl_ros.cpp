@@ -9,6 +9,7 @@
 #include "crocoddyl_msgs/solver_statistics_subscriber.h"
 #include "crocoddyl_msgs/solver_trajectory_publisher.h"
 #include "crocoddyl_msgs/solver_trajectory_subscriber.h"
+#include "crocoddyl_msgs/whole_body_state_publisher.h"
 #include "crocoddyl_msgs/whole_body_state_subscriber.h"
 
 PYBIND11_MODULE(crocoddyl_ros, m) {
@@ -118,13 +119,37 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "parametrization.")
       .def("has_new_msg", &SolverTrajectoryRosSubscriber::has_new_msg);
 
-  py::class_<WholeBodyStateSubscriber,
-             std::unique_ptr<WholeBodyStateSubscriber, py::nodelete>>(
-      m, "WholeBodyStateSubscriber")
+  py::class_<WholeBodyStateRosPublisher,
+             std::unique_ptr<WholeBodyStateRosPublisher, py::nodelete>>(
+      m, "WholeBodyStateRosPublisher")
       .def(py::init<pinocchio::Model &, const std::string &,
                     const std::string &>(),
-           py::arg("model"), py::arg("topic"), py::arg("frame"))
+           py::arg("model"), py::arg("topic") = "/crocoddyl/solver_trajectory",
+           py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
-      .def("get_state", &WholeBodyStateSubscriber::get_state)
-      .def("has_new_msg", &WholeBodyStateSubscriber::has_new_msg);
+      .def("publish", &WholeBodyStateRosPublisher::publish,
+           "Publish a whole-body state ROS message.\n\n"
+           ":param t: time in secs\n"
+           ":param q: configuration vector (dimension: model.nq)\n"
+           ":param v: generalized velocity (dimension: model.nv)\n"
+           ":param a: generalized acceleration (dimension: model.nv)\n"
+           ":param tau: joint effort\n"
+           ":param p: contact position\n"
+           ":param pd: contact velocity\n"
+           ":param f: contact force, type and status\n"
+           ":param s: contact surface and friction coefficient",
+           py::arg("t"), py::arg("q"), py::arg("v"), py::arg("a"),
+           py::arg("tau"), py::arg("p"), py::arg("pd"), py::arg("f"),
+           py::arg("s"));
+
+  py::class_<WholeBodyStateRosSubscriber,
+             std::unique_ptr<WholeBodyStateRosSubscriber, py::nodelete>>(
+      m, "WholeBodyStateRosSubscriber")
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"), py::arg("topic") = "/crocoddyl/solver_trajectory",
+           py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &>(), py::arg("model"))
+      .def("get_state", &WholeBodyStateRosSubscriber::get_state)
+      .def("has_new_msg", &WholeBodyStateRosSubscriber::has_new_msg);
 }
