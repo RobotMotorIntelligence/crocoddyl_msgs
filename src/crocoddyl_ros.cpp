@@ -22,6 +22,30 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
   m.doc() = "Python interface for publishing and subscribing efficiently to "
             "Crocoddyl messages in ROS.";
 
+  py::enum_<ControlType>(m, "ControlType")
+      .value("EFFORT", ControlType::EFFORT)
+      .value("ACCELERATION_CONTACTFORCE",
+             ControlType::ACCELERATION_CONTACTFORCE)
+      .export_values();
+
+  py::enum_<ControlParametrization>(m, "ControlParametrization")
+      .value("POLYZERO", ControlParametrization::POLYZERO)
+      .value("POLYONE", ControlParametrization::POLYONE)
+      .value("POLYTWO", ControlParametrization::POLYTWO)
+      .export_values();
+
+  py::enum_<ContactType>(m, "ContactType")
+      .value("LOCOMOTION", ContactType::LOCOMOTION)
+      .value("MANIPULATION", ContactType::MANIPULATION)
+      .export_values();
+
+  py::enum_<ContactStatus>(m, "ContactStatus")
+      .value("UNKNOWN", ContactStatus::UNKNOWN)
+      .value("SEPARATION", ContactStatus::SEPARATION)
+      .value("STICKING", ContactStatus::STICKING)
+      .value("SLIPPING", ContactStatus::SLIPPING)
+      .export_values();
+
   py::class_<SolverStatisticsRosPublisher,
              std::unique_ptr<SolverStatisticsRosPublisher, py::nodelete>>(
       m, "SolverStatisticsRosPublisher")

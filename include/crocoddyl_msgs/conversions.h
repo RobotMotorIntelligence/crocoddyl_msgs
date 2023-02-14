@@ -32,9 +32,9 @@ enum ControlType { EFFORT = 0, ACCELERATION_CONTACTFORCE };
 
 enum ControlParametrization { POLYZERO = 0, POLYONE, POLYTWO };
 
-enum ContactTypeEnum { LOCOMOTION = 0, MANIPULATION };
+enum ContactType { LOCOMOTION = 0, MANIPULATION };
 
-enum ContactStateEnum { UNKNOWN = 0, OPEN, CLOSED, SLIPPING };
+enum ContactStatus { UNKNOWN = 0, SEPARATION, STICKING, SLIPPING };
 
 /**
  * @brief Conversion of Eigen to message for a given
@@ -301,28 +301,28 @@ void fromMsg(
         Eigen::Vector3d(contact.velocity.angular.x, contact.velocity.angular.y,
                         contact.velocity.angular.z));
     // Contact wrench
-    ContactTypeEnum type;
+    ContactType type;
     switch (contact.type) {
     case whole_body_state_msgs::ContactState::LOCOMOTION:
-      type = ContactTypeEnum::LOCOMOTION;
+      type = ContactType::LOCOMOTION;
       break;
     case whole_body_state_msgs::ContactState::MANIPULATION:
-      type = ContactTypeEnum::MANIPULATION;
+      type = ContactType::MANIPULATION;
       break;
     }
-    ContactStateEnum status;
+    ContactStatus status;
     switch (contact.status) {
     case whole_body_state_msgs::ContactState::UNKNOWN:
-      status = ContactStateEnum::UNKNOWN;
-      break;
-    case whole_body_state_msgs::ContactState::ACTIVE:
-      status = ContactStateEnum::CLOSED;
+      status = ContactStatus::UNKNOWN;
       break;
     case whole_body_state_msgs::ContactState::INACTIVE:
-      status = ContactStateEnum::OPEN;
+      status = ContactStatus::SEPARATION;
+      break;
+    case whole_body_state_msgs::ContactState::ACTIVE:
+      status = ContactStatus::STICKING;
       break;
     case whole_body_state_msgs::ContactState::SLIPPING:
-      status = ContactStateEnum::SLIPPING;
+      status = ContactStatus::SLIPPING;
       break;
     }
     f[contact.name] = {
