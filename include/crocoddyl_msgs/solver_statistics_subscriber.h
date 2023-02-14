@@ -1,14 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (C) 2023-2023, Heriot-Watt University
+// Copyright (C) 2020-2023, Heriot-Watt University, University of Oxford
 // Copyright note valid unless otherwise stated in individual files.
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifndef CROCODDYL_MSG_SOLVER_STATISTICS_SUBSCRIBER_H_
+#define CROCODDYL_MSG_SOLVER_STATISTICS_SUBSCRIBER_H_
+
 #include <mutex>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include <ros/node_handle.h>
 
 #include "crocoddyl_msgs/SolverStatistics.h"
@@ -115,29 +116,4 @@ private:
 
 } // namespace crocoddyl_msgs
 
-PYBIND11_MODULE(solver_statistics_subscriber, m) {
-  namespace py = pybind11;
-  using namespace crocoddyl_msgs;
-
-  int argc = 0;
-  char **argv = nullptr;
-  ros::init(argc, argv, "solver_statistics_subscriber",
-            ros::init_options::AnonymousName);
-
-  m.doc() = "Python interface for subcribing efficiently the Crocoddyl solver "
-            "statistics in a ROS topic.";
-
-  py::class_<SolverStatisticsRosSubscriber,
-             std::unique_ptr<SolverStatisticsRosSubscriber, py::nodelete>>(
-      m, "SolverStatisticsRosSubscriber")
-      .def(py::init<const std::string &>(),
-           py::arg("topic") = "/crocoddyl/solver_statistics")
-      .def("get_solver_statistics",
-           &SolverStatisticsRosSubscriber::get_solver_statistics,
-           "Get the latest solver statistic.\n\n"
-           ":return: a list with the number of iterations, total time, solve\n"
-           "time, cost, regularization, step legth, dynamic, equality and\n"
-           "inequality feasibilities.")
-      .def("has_new_msg",
-           &SolverStatisticsRosSubscriber::has_new_msg);
-}
+#endif // CROCODDYL_MSG_SOLVER_STATISTICS_SUBSCRIBER_H_

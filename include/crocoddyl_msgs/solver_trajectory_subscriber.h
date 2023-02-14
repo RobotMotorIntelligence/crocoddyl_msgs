@@ -6,12 +6,11 @@
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifndef CROCODDYL_MSG_SOLVER_TRAJECTORY_SUBSCRIBER_H_
+#define CROCODDYL_MSG_SOLVER_TRAJECTORY_SUBSCRIBER_H_
+
 #include <Eigen/Dense>
 #include <mutex>
-#include <pybind11/eigen.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include <ros/node_handle.h>
 
 #include "crocoddyl_msgs/SolverTrajectory.h"
@@ -132,29 +131,4 @@ private:
 
 } // namespace crocoddyl_msgs
 
-PYBIND11_MODULE(solver_trajectory_subscriber, m) {
-  namespace py = pybind11;
-  using namespace crocoddyl_msgs;
-
-  int argc = 0;
-  char **argv = nullptr;
-  ros::init(argc, argv, "solver_trajectory_subscriber",
-            ros::init_options::AnonymousName);
-
-  m.doc() = "Python interface for subcribing efficiently the Crocoddyl solver "
-            "trajectory in a ROS topic.";
-
-  py::class_<SolverTrajectoryRosSubscriber,
-             std::unique_ptr<SolverTrajectoryRosSubscriber, py::nodelete>>(
-      m, "SolverTrajectoryRosSubscriber")
-      .def(py::init<const std::string &>(),
-           py::arg("topic") = "/crocoddyl/solver_trajectory")
-      .def("get_solver_trajectory",
-           &SolverTrajectoryRosSubscriber::get_solver_trajectory,
-           "Get the latest solver trajectory.\n\n"
-           ":return: a list with the vector of time at the beginning of the\n"
-           "interval, its durations, initial state, state's rate of change,\n"
-           "feed-forward control, feedback gain, type of control and control\n"
-           "parametrization.")
-      .def("has_new_msg", &SolverTrajectoryRosSubscriber::has_new_msg);
-}
+#endif // CROCODDYL_MSG_SOLVER_TRAJECTORY_SUBSCRIBER_H_

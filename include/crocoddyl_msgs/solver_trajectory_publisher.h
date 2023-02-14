@@ -6,11 +6,10 @@
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 
+#ifndef CROCODDYL_MSG_SOLVER_TRAJECTORY_PUBLISHER_H_
+#define CROCODDYL_MSG_SOLVER_TRAJECTORY_PUBLISHER_H_
+
 #include <Eigen/Dense>
-#include <pybind11/eigen.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
 #include <realtime_tools/realtime_publisher.h>
 #include <ros/node_handle.h>
 
@@ -104,37 +103,4 @@ private:
 
 } // namespace crocoddyl_msgs
 
-PYBIND11_MODULE(solver_trajectory_publisher, m) {
-  namespace py = pybind11;
-  using namespace crocoddyl_msgs;
-
-  int argc = 0;
-  char **argv = nullptr;
-  ros::init(argc, argv, "solver_trajectory_publisher",
-            ros::init_options::AnonymousName);
-
-  m.doc() = "Python interface for publishing efficiently the Crocoddyl solver "
-            "trajectory in a ROS topic.";
-
-  py::class_<SolverTrajectoryRosPublisher,
-             std::unique_ptr<SolverTrajectoryRosPublisher, py::nodelete>>(
-      m, "SolverTrajectoryRosPublisher")
-      .def(py::init<const std::string &, const std::string &>(),
-           py::arg("topic") = "/crocoddyl/solver_trajectory",
-           py::arg("frame") = "odom")
-      .def("publish", &SolverTrajectoryRosPublisher::publish,
-           "Publish a solver trajectory ROS message.\n\n"
-           ":param ts: list of initial times of each interval\n"
-           ":param dts: list of time durations of each interval\n"
-           ":param xs: list of states at the beginning of each interval\n"
-           ":param dxs: list of state's rate of changes of each interval\n"
-           ":param us: list of control parameters of each interval\n"
-           ":param Ks: list of feedback gains of each interval\n"
-           ":param types: list of control types\n"
-           ":param params: list of control parametrizations",
-           py::arg("ts"), py::arg("dts"), py::arg("xs"), py::arg("dxs"),
-           py::arg("us") = std::vector<Eigen::VectorXd>(),
-           py::arg("Ks") = std::vector<Eigen::MatrixXd>(),
-           py::arg("types") = std::vector<ControlType>(),
-           py::arg("params") = std::vector<ControlParametrization>());
-}
+#endif // CROCODDYL_MSG_SOLVER_TRAJECTORY_PUBLISHER_H_

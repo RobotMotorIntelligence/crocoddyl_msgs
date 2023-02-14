@@ -6,7 +6,9 @@
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <pybind11/pybind11.h>
+#ifndef CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_
+#define CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_
+
 #include <realtime_tools/realtime_publisher.h>
 #include <ros/node_handle.h>
 
@@ -68,38 +70,4 @@ private:
 
 } // namespace crocoddyl_msgs
 
-PYBIND11_MODULE(solver_statistics_publisher, m) {
-  namespace py = pybind11;
-  using namespace crocoddyl_msgs;
-
-  int argc = 0;
-  char **argv = nullptr;
-  ros::init(argc, argv, "solver_statistics_publisher",
-            ros::init_options::AnonymousName);
-
-  m.doc() = "Python interface for publishing efficiently the Crocoddyl solver "
-            "statistics in a ROS topic.";
-
-  py::class_<SolverStatisticsRosPublisher,
-             std::unique_ptr<SolverStatisticsRosPublisher, py::nodelete>>(
-      m, "SolverStatisticsRosPublisher")
-      .def(py::init<const std::string &>(),
-           py::arg("topic") = "/crocoddyl/solver_statistics")
-      .def("publish", &SolverStatisticsRosPublisher::publish,
-           "Publish a solver statistic ROS message.\n\n"
-           ":param iterations: number of solver iterations\n"
-           ":param total_time: total computation time\n"
-           ":param solve_time: solving time\n"
-           ":param cost: total cost\n"
-           ":param regularization: regularization value\n"
-           ":param step_length: step length applied by the solver\n"
-           ":param dynamic_feasibility: dynamic feasibility\n"
-           ":param equality_feasibility: equality constraints feasibility "
-           "(default 0)\n"
-           ":param inequality_feasibility: inequality constraints feasibility "
-           "(default 0)",
-           py::arg("iterations"), py::arg("total_time"), py::arg("solve_time"),
-           py::arg("cost"), py::arg("regularization"), py::arg("step_length"),
-           py::arg("dynamic_feasibility"), py::arg("equality_feasibility") = 0.,
-           py::arg("inequality_feasibility") = 0.);
-}
+#endif // CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_
