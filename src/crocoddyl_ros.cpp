@@ -12,6 +12,7 @@
 #include "crocoddyl_msgs/whole_body_state_publisher.h"
 #include "crocoddyl_msgs/whole_body_state_subscriber.h"
 #include "crocoddyl_msgs/whole_body_trajectory_publisher.h"
+#include "crocoddyl_msgs/whole_body_trajectory_subscriber.h"
 
 PYBIND11_MODULE(crocoddyl_ros, m) {
   namespace py = pybind11;
@@ -180,4 +181,22 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param ss: list of contact surfaces and friction coefficients",
            py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps"),
            py::arg("pds"), py::arg("fs"), py::arg("ss"));
+
+  py::class_<WholeBodyTrajectoryRosSubscriber,
+             std::unique_ptr<WholeBodyTrajectoryRosSubscriber, py::nodelete>>(
+      m, "WholeBodyTrajectoryRosSubscriber")
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"),
+           py::arg("topic") = "/crocoddyl/whole_body_trajectory",
+           py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &>(), py::arg("model"))
+      .def("get_trajectory", &WholeBodyTrajectoryRosSubscriber::get_trajectory,
+           "Get the latest whole-body trajectory.\n\n"
+           ":return: lists of time at the beginning of the intervals,\n"
+           "states, joint efforts, contact positions, contact velocities,\n"
+           "contact forces, types and statuses, and contact surfaces and "
+           "friction\n"
+           "coefficients.")
+      .def("has_new_msg", &WholeBodyTrajectoryRosSubscriber::has_new_msg);
 }
