@@ -11,6 +11,7 @@
 #include "crocoddyl_msgs/solver_trajectory_subscriber.h"
 #include "crocoddyl_msgs/whole_body_state_publisher.h"
 #include "crocoddyl_msgs/whole_body_state_subscriber.h"
+#include "crocoddyl_msgs/whole_body_trajectory_publisher.h"
 
 PYBIND11_MODULE(crocoddyl_ros, m) {
   namespace py = pybind11;
@@ -124,7 +125,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
       m, "WholeBodyStateRosPublisher")
       .def(py::init<pinocchio::Model &, const std::string &,
                     const std::string &>(),
-           py::arg("model"), py::arg("topic") = "/crocoddyl/solver_trajectory",
+           py::arg("model"), py::arg("topic") = "/crocoddyl/whole_body_state",
            py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("publish", &WholeBodyStateRosPublisher::publish,
@@ -147,7 +148,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
       m, "WholeBodyStateRosSubscriber")
       .def(py::init<pinocchio::Model &, const std::string &,
                     const std::string &>(),
-           py::arg("model"), py::arg("topic") = "/crocoddyl/solver_trajectory",
+           py::arg("model"), py::arg("topic") = "/crocoddyl/whole_body_state",
            py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("get_state", &WholeBodyStateRosSubscriber::get_state,
@@ -158,4 +159,25 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "contact force, type and status, and contact surface and friction\n"
            "coefficient.")
       .def("has_new_msg", &WholeBodyStateRosSubscriber::has_new_msg);
+
+  py::class_<WholeBodyTrajectoryRosPublisher,
+             std::unique_ptr<WholeBodyTrajectoryRosPublisher, py::nodelete>>(
+      m, "WholeBodyTrajectoryRosPublisher")
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &, int>(),
+           py::arg("model"),
+           py::arg("topic") = "/crocoddyl/whole_body_trajectory",
+           py::arg("frame") = "odom", py::arg("queue") = 10)
+      .def(py::init<pinocchio::Model &>(), py::arg("model"))
+      .def("publish", &WholeBodyTrajectoryRosPublisher::publish,
+           "Publish a whole-body trajectory ROS message.\n\n"
+           ":param ts: list of interval times in secs\n"
+           ":param xs: list of state vectors (dimension: model.nq + model.nv)\n"
+           ":param us: list of joint efforts\n"
+           ":param ps: list of contact positions\n"
+           ":param pds: list of contact velocities\n"
+           ":param fs: list of contact forces, types and statuses\n"
+           ":param ss: list of contact surfaces and friction coefficients",
+           py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps"),
+           py::arg("pds"), py::arg("fs"), py::arg("ss"));
 }
