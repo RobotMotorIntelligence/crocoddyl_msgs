@@ -52,7 +52,7 @@ public:
   /**
    * @brief Get the latest whole-body state
    *
-   * @return  A tuple with the vector of time at the beginning of the interval,
+   * @return  A tuple with the time at the beginning of the interval,
    * generalized position, generalized velocity, joint efforts, and contact
    * state.
    */
@@ -97,7 +97,7 @@ private:
       s_;                  //!< Contact surface and friction coefficient
   bool has_new_msg_;       //!< Indcate when a new message has been received
   bool is_processing_msg_; //!< Indicate when we are processing the message
-  double last_msg_time_ = 0;
+  double last_msg_time_;
   std::string odom_frame_;
   pinocchio::Model model_;
   pinocchio::Data data_;
