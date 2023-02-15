@@ -77,11 +77,17 @@ public:
     types_.resize(N);
     params_.resize(N);
     for (std::size_t i = 0; i < N; ++i) {
-      ts_[i] = msg_.intervals[i].time;
-      dts_[i] = msg_.intervals[i].duration;
-      crocoddyl_msgs::fromMsg(msg_.state_trajectory[i], xs_[i], dxs_[i]);
-      crocoddyl_msgs::fromMsg(msg_.control_trajectory[i], us_[i], Ks_[i],
-                              types_[i], params_[i]);
+      const crocoddyl_msgs::TimeInterval &interval = msg_.intervals[i];
+      const crocoddyl_msgs::State &state = msg_.state_trajectory[i];
+      const crocoddyl_msgs::Control &control = msg_.control_trajectory[i];
+      ts_[i] = interval.time;
+      dts_[i] = interval.duration;
+      xs_[i].resize(state.x.size());
+      dxs_[i].resize(state.dx.size());
+      us_[i].resize(control.u.size());
+      Ks_[i].resize(control.gain.nu, control.gain.nx);
+      crocoddyl_msgs::fromMsg(state, xs_[i], dxs_[i]);
+      crocoddyl_msgs::fromMsg(control, us_[i], Ks_[i], types_[i], params_[i]);
     }
     // finish processing the message
     is_processing_msg_ = false;

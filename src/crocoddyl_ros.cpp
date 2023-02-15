@@ -156,9 +156,9 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "Get the latest whole-body state.\n\n"
            ":return: a list with the time at the beginning of the interval,\n"
            "configuration vector, generalized velocity, generalized\n"
-           "accelerations, joint effort, contact position, contact velocity,\n"
-           "contact force, type and status, and contact surface and friction\n"
-           "coefficient.")
+           "acceleration, joint effort, contact position, contact velocity,\n"
+           "contact force (wrench, type and status), and contact surface (norm\n"
+           "and friction coefficient).")
       .def("has_new_msg", &WholeBodyStateRosSubscriber::has_new_msg);
 
   py::class_<WholeBodyTrajectoryRosPublisher,

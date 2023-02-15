@@ -50,7 +50,7 @@ static inline void toMsg(crocoddyl_msgs::FeedbackGain &msg,
   msg.data.resize(msg.nx * msg.nu);
   for (uint32_t i = 0; i < msg.nu; ++i) {
     for (uint32_t j = 0; j < msg.nx; ++j) {
-      msg.data[i * msg.nx + j] = K(i, j);
+      msg.data[i * msg.nx + j] = K(i, j); // store in row-major order
     }
   }
 }
@@ -68,10 +68,10 @@ static inline void toMsg(crocoddyl_msgs::State &msg,
                          const Eigen::Ref<const Eigen::VectorXd> &dx) {
   msg.x.resize(x.size());
   msg.dx.resize(dx.size());
-  for (uint32_t i = 0; i < x.size(); ++i) {
+  for (std::size_t i = 0; i < x.size(); ++i) {
     msg.x[i] = x(i);
   }
-  for (uint32_t i = 0; i < dx.size(); ++i) {
+  for (std::size_t i = 0; i < dx.size(); ++i) {
     msg.dx[i] = dx(i);
   }
 }
@@ -92,33 +92,27 @@ static inline void toMsg(crocoddyl_msgs::Control &msg,
                          const ControlType type,
                          const ControlParametrization parametrization) {
   msg.u.resize(u.size());
-  for (uint32_t i = 0; i < u.size(); ++i) {
+  for (std::size_t i = 0; i < u.size(); ++i) {
     msg.u[i] = u(i);
   }
   toMsg(msg.gain, K);
   switch (type) {
   case ControlType::EFFORT:
-    msg.input = 0;
+    msg.input = crocoddyl_msgs::Control::EFFORT;
     break;
   case ControlType::ACCELERATION_CONTACTFORCE:
-    msg.input = 1;
-    break;
-  default:
-    msg.input = 0;
+    msg.input = crocoddyl_msgs::Control::ACCELERATION_CONTACTFORCE;
     break;
   }
   switch (parametrization) {
   case ControlParametrization::POLYZERO:
-    msg.parametrization = 0;
+    msg.parametrization = crocoddyl_msgs::Control::POLYZERO;
     break;
   case ControlParametrization::POLYONE:
-    msg.parametrization = 1;
+    msg.parametrization = crocoddyl_msgs::Control::POLYONE;
     break;
   case ControlParametrization::POLYTWO:
-    msg.parametrization = 1;
-    break;
-  default:
-    msg.parametrization = 0;
+    msg.parametrization = crocoddyl_msgs::Control::POLYTWO;
     break;
   }
 }
@@ -158,21 +152,19 @@ void toMsg(
                                 " but received " + std::to_string(q.size()));
   }
   if (v.size() != model.nv) {
-    throw std::invalid_argument("Expected v to be 0 or " +
-                                std::to_string(model.nv) + " but received " +
-                                std::to_string(v.size()));
+    throw std::invalid_argument("Expected v to be " + std::to_string(model.nv) +
+                                " but received " + std::to_string(v.size()));
   }
-  if (v.size() != model.nv) {
-    throw std::invalid_argument("Expected a to be 0 or " +
-                                std::to_string(model.nv) + " but received " +
-                                std::to_string(a.size()));
+  if (a.size() != model.nv) {
+    throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
+                                " but received " + std::to_string(a.size()));
   }
   const std::size_t root_joint_id = model.frames[1].parent;
   const std::size_t nv_root = model.joints[root_joint_id].idx_q() == 0
                                   ? model.joints[root_joint_id].nv()
                                   : 0;
   const std::size_t njoints = model.nv - nv_root;
-  if (tau.size() != static_cast<int>(njoints)) {
+  if (tau.size() != static_cast<int>(njoints) && tau.size() != 0) {
     throw std::invalid_argument("Expected tau to be 0 or " +
                                 std::to_string(njoints) + " but received " +
                                 std::to_string(tau.size()));
@@ -203,13 +195,20 @@ void toMsg(
   msg.centroidal.com_velocity.y = data.vcom[0].y();
   msg.centroidal.com_velocity.z = data.vcom[0].z();
   // Base
-  msg.centroidal.base_orientation.x = q(3);
-  msg.centroidal.base_orientation.y = q(4);
-  msg.centroidal.base_orientation.z = q(5);
-  msg.centroidal.base_orientation.w = q(6);
-  msg.centroidal.base_angular_velocity.x = v(3);
-  msg.centroidal.base_angular_velocity.y = v(4);
-  msg.centroidal.base_angular_velocity.z = v(5);
+  if (nv_root == 6) { // TODO(cmastalli): handle other root joints
+    msg.centroidal.base_orientation.x = q(3);
+    msg.centroidal.base_orientation.y = q(4);
+    msg.centroidal.base_orientation.z = q(5);
+    msg.centroidal.base_orientation.w = q(6);
+    msg.centroidal.base_angular_velocity.x = v(3);
+    msg.centroidal.base_angular_velocity.y = v(4);
+    msg.centroidal.base_angular_velocity.z = v(5);
+  } else if (nv_root != 0) {
+    std::cerr
+        << "Warning: toMsg conversion does not yet support root joints "
+           "different to a floating base. We cannot publish base information."
+        << std::endl;
+  }
   // Momenta
   const pinocchio::Force &momenta =
       pinocchio::computeCentroidalMomentum(model, data);
@@ -242,7 +241,7 @@ void toMsg(
   for (const auto &p_item : p) {
     const std::string &name = p_item.first;
     msg.contacts[i].name = name;
-    pinocchio::FrameIndex frame_id = model.getFrameId(msg.contacts[i].name);
+    pinocchio::FrameIndex frame_id = model.getFrameId(name);
     if (static_cast<int>(frame_id) > model.nframes) {
       throw std::runtime_error("Frame '" + name + "' not found.");
     }
@@ -262,7 +261,9 @@ void toMsg(
     if (s_it == s.end()) {
       throw std::runtime_error("Frame '" + name + "' not found in s.");
     }
+    ++i;
   }
+  i = 0;
   for (const auto &p_item : p) {
     const std::string &name = p_item.first;
     const pinocchio::SE3 &pose = p_item.second;
@@ -373,12 +374,14 @@ static inline void fromMsg(const crocoddyl_msgs::State &msg,
                            Eigen::Ref<Eigen::VectorXd> x,
                            Eigen::Ref<Eigen::VectorXd> dx) {
   if (x.size() != msg.x.size()) {
-    throw std::invalid_argument(
-        "The x dimension needs to be: " + std::to_string(msg.x.size()) + ".");
+    throw std::invalid_argument("Expected x to be " +
+                                std::to_string(msg.x.size()) +
+                                " but received " + std::to_string(x.size()));
   }
   if (dx.size() != msg.dx.size()) {
-    throw std::invalid_argument(
-        "The dx dimension needs to be: " + std::to_string(msg.dx.size()) + ".");
+    throw std::invalid_argument("Expected dx to be " +
+                                std::to_string(msg.dx.size()) +
+                                " but received " + std::to_string(dx.size()));
   }
   for (std::size_t i = 0; i < msg.x.size(); ++i) {
     x(i) = msg.x[i];
@@ -403,8 +406,9 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
                            Eigen::Ref<Eigen::MatrixXd> K, ControlType &type,
                            ControlParametrization &parametrization) {
   if (u.size() != msg.u.size()) {
-    throw std::invalid_argument("The dimension of u needs to be: " +
-                                std::to_string(msg.u.size()) + ".");
+    throw std::invalid_argument("Expected u to be " +
+                                std::to_string(msg.u.size()) +
+                                " but received " + std::to_string(u.size()));
   }
   for (std::size_t i = 0; i < msg.u.size(); ++i) {
     u(i) = msg.u[i];
@@ -465,21 +469,29 @@ void fromMsg(
                                 std::to_string(tau.size()));
   }
   if (msg.joints.size() != static_cast<std::size_t>(njoints)) {
-    throw std::invalid_argument("Expected msg.joints to be " +
-                                std::to_string(njoints) + " but received " +
-                                std::to_string(msg.joints.size()));
+    throw std::invalid_argument("Message incorrect - msg.joints size is " +
+                                std::to_string(msg.joints.size()) +
+                                " but expected to be " +
+                                std::to_string(njoints));
   }
   t = msg.time;
-  // Retrieve the generalized position and velocity, and joint torques
+  // Retrieve the generalized position and velocity, and joint efforts
   q.head<3>().setZero();
-  q(3) = msg.centroidal.base_orientation.x;
-  q(4) = msg.centroidal.base_orientation.y;
-  q(5) = msg.centroidal.base_orientation.z;
-  q(6) = msg.centroidal.base_orientation.w;
   v.head<3>().setZero();
-  v(3) = msg.centroidal.base_angular_velocity.x;
-  v(4) = msg.centroidal.base_angular_velocity.y;
-  v(5) = msg.centroidal.base_angular_velocity.z;
+  if (nv_root == 6) {
+    q(3) = msg.centroidal.base_orientation.x;
+    q(4) = msg.centroidal.base_orientation.y;
+    q(5) = msg.centroidal.base_orientation.z;
+    q(6) = msg.centroidal.base_orientation.w;
+    v(3) = msg.centroidal.base_angular_velocity.x;
+    v(4) = msg.centroidal.base_angular_velocity.y;
+    v(5) = msg.centroidal.base_angular_velocity.z;
+  } else if (nv_root != 0) {
+    std::cerr
+        << "Warning: fromMsg conversion does not yet support root joints "
+           "different to a floating base. We cannot publish base information."
+        << std::endl;
+  }
   for (std::size_t j = 0; j < njoints; ++j) {
     auto joint_id = model.getJointId(msg.joints[j].name);
     auto q_idx = model.idx_qs[joint_id];
@@ -489,20 +501,21 @@ void fromMsg(
     a(v_idx) = msg.joints[j].acceleration;
     tau(joint_id - 2) = msg.joints[j].effort;
   }
-  pinocchio::normalize(model, q);
-  pinocchio::centerOfMass(model, data, q, v);
-  q(0) = msg.centroidal.com_position.x - data.com[0](0);
-  q(1) = msg.centroidal.com_position.y - data.com[0](1);
-  q(2) = msg.centroidal.com_position.z - data.com[0](2);
-  v(0) = msg.centroidal.com_velocity.x - data.vcom[0](0);
-  v(1) = msg.centroidal.com_velocity.y - data.vcom[0](1);
-  v(2) = msg.centroidal.com_velocity.z - data.vcom[0](2);
-  v.head<3>() = Eigen::Quaterniond(q(6), q(3), q(4),
-                                   q(5))
-                    .toRotationMatrix()
-                    .transpose() *
-                v.head<3>(); // local frame
-
+  if (nv_root == 6) {
+    pinocchio::normalize(model, q);
+    pinocchio::centerOfMass(model, data, q, v);
+    q(0) = msg.centroidal.com_position.x - data.com[0](0);
+    q(1) = msg.centroidal.com_position.y - data.com[0](1);
+    q(2) = msg.centroidal.com_position.z - data.com[0](2);
+    v(0) = msg.centroidal.com_velocity.x - data.vcom[0](0);
+    v(1) = msg.centroidal.com_velocity.y - data.vcom[0](1);
+    v(2) = msg.centroidal.com_velocity.z - data.vcom[0](2);
+    v.head<3>() = Eigen::Quaterniond(q(6), q(3), q(4),
+                                     q(5))
+                      .toRotationMatrix()
+                      .transpose() *
+                  v.head<3>(); // local frame
+  }
   // Retrieve the contact information
   for (const auto &contact : msg.contacts) {
     // Contact pose

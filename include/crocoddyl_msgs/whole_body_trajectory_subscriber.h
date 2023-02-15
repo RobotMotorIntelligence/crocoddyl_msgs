@@ -34,9 +34,9 @@ public:
       pinocchio::Model &model,
       const std::string &topic = "/crocoddyl/whole_body_trajectory",
       const std::string &frame = "odom")
-      : spinner_(2), a_null_(Eigen::VectorXd::Zero(model.nv)),
-        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
-        odom_frame_(frame), model_(model), data_(model) {
+      : spinner_(2), a_null_(model.nv), has_new_msg_(false),
+        is_processing_msg_(false), last_msg_time_(0.), odom_frame_(frame),
+        model_(model), data_(model) {
     ros::NodeHandle n;
     sub_ = n.subscribe<whole_body_state_msgs::WholeBodyTrajectory>(
         topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,

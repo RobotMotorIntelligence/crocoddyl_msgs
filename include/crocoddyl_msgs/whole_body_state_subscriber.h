@@ -34,17 +34,24 @@ public:
       pinocchio::Model &model,
       const std::string &topic = "/crocoddyl/whole_body_state",
       const std::string &frame = "odom")
-      : spinner_(2), t_(0.), q_(Eigen::VectorXd::Zero(model.nq)),
-        v_(Eigen::VectorXd::Zero(model.nv)),
-        a_(Eigen::VectorXd::Zero(model.nv)),
-        tau_(Eigen::VectorXd(model.njoints - 2)), has_new_msg_(false),
-        is_processing_msg_(false), last_msg_time_(0.), odom_frame_(frame),
-        model_(model), data_(model) {
+      : spinner_(2), t_(0.), q_(model.nq), v_(model.nv), a_(model.nv),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model) {
     ros::NodeHandle n;
     sub_ = n.subscribe<whole_body_state_msgs::WholeBodyState>(
         topic, 1, &WholeBodyStateRosSubscriber::callback, this,
         ros::TransportHints().tcpNoDelay());
     spinner_.start();
+
+    const std::size_t root_joint_id = model.frames[1].parent;
+    const std::size_t nv_root = model.joints[root_joint_id].idx_q() == 0
+                                    ? model.joints[root_joint_id].nv()
+                                    : 0;
+    const std::size_t njoints = model.nv - nv_root;
+    q_.setZero();
+    v_.setZero();
+    a_.setZero();
+    tau_ = Eigen::VectorXd::Zero(njoints);
     std::cout << "Ready to receive whole-body states" << std::endl;
   }
   ~WholeBodyStateRosSubscriber() = default;
@@ -53,12 +60,13 @@ public:
    * @brief Get the latest whole-body state
    *
    * @return  A tuple with the time at the beginning of the interval,
-   * generalized position, generalized velocity, joint efforts, and contact
-   * state.
+   * generalized position, generalized velocity, generalized acceleration, joint
+   * efforts, contact position, contact velocity, contact force (wrench, type,
+   * status), and contact surface (norm and friction coefficient).
    */
   std::tuple<
       double, Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd,
-      std::map<std::string, pinocchio::SE3>,
+      Eigen::VectorXd, std::map<std::string, pinocchio::SE3>,
       std::map<std::string, pinocchio::Motion>,
       std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>,
       std::map<std::string, std::pair<Eigen::Vector3d, double>>>
@@ -71,7 +79,7 @@ public:
     // finish processing the message
     is_processing_msg_ = false;
     has_new_msg_ = false;
-    return {t_, q_, v_, tau_, p_, pd_, f_, s_};
+    return {t_, q_, v_, a_, tau_, p_, pd_, f_, s_};
   }
 
   /**
@@ -88,7 +96,7 @@ private:
   Eigen::VectorXd q_;   ///< Configuration vector (size nq)
   Eigen::VectorXd v_;   ///< Tangent vector (size nv)
   Eigen::VectorXd a_;   ///< System acceleration vector (size nv)
-  Eigen::VectorXd tau_; ///< Torque vector (size njoints-2)
+  Eigen::VectorXd tau_; ///< Torque vector (size njoints)
   std::map<std::string, pinocchio::SE3> p_;     //!< Contact position
   std::map<std::string, pinocchio::Motion> pd_; //!< Contact velocity
   std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>
