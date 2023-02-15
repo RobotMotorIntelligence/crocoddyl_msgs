@@ -40,15 +40,15 @@ public:
   /**
    * @brief Publish a whole-body state ROS message
    *
-   * @param t[in]      Time in secs
-   * @param q[in]      Configuration vector (dimension: model.nq)
-   * @param v[in]      Generalized velocity (dimension: model.nv)
-   * @param a[in]      Generalized acceleration (dimension: model.nv)
-   * @param tau[in]    Joint effort (dimension: model.nv)
-   * @param p[in]      Contact position
-   * @param pd[in]     Contact velocity
-   * @param f[in]      Contact force, type and status
-   * @param s[in]      Contact surface and friction coefficient
+   * @param t[in]    Time in secs
+   * @param q[in]    Configuration vector (dimension: model.nq)
+   * @param v[in]    Generalized velocity (dimension: model.nv)
+   * @param a[in]    Generalized acceleration (dimension: model.nv)
+   * @param tau[in]  Joint effort (dimension: model.nv)
+   * @param p[in]    Contact position
+   * @param pd[in]   Contact velocity
+   * @param f[in]    Contact force, type and status
+   * @param s[in]    Contact surface and friction coefficient
    */
   void
   publish(const double t, const Eigen::Ref<const Eigen::VectorXd> &q,

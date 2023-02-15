@@ -43,15 +43,13 @@ public:
   /**
    * @brief Publish a whole-body trajectory ROS message
    *
-   * @param ts[in]      Time in secs
-   * @param qs[in]      Configuration vector (dimension: model.nq)
-   * @param vs[in]      Generalized velocity (dimension: model.nv)
-   * @param as[in]      Generalized acceleration (dimension: model.nv)
-   * @param us[in]      Joint effort (dimension: model.nv)
-   * @param ps[in]      Contact position
-   * @param pds[in]     Contact velocity
-   * @param fs[in]      Contact force, type and status
-   * @param ss[in]      Contact surface and friction coefficient
+   * @param ts[in]   Vector of interval times in secs
+   * @param xs[in]   Vector of states (dimension: model.nq)
+   * @param us[in]   Vector of joint efforts (dimension: model.nv)
+   * @param ps[in]   Vector of contact positions
+   * @param pds[in]  Vector of contact velocities
+   * @param fs[in]   Vector of contact forces, types and statuses
+   * @param ss[in]   Vector of contact surfaces and friction coefficients
    */
   void
   publish(const std::vector<double> &ts, const std::vector<Eigen::VectorXd> &xs,

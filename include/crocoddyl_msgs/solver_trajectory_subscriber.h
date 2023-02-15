@@ -68,7 +68,6 @@ public:
           "The size of the control trajectory vector needs to equal "
           "the size of the intervals vector.");
     }
-
     ts_.resize(N);
     dts_.resize(N);
     xs_.resize(N);
