@@ -93,20 +93,12 @@ public:
 
       pub_.msg_.header.frame_id = odom_frame_;
       pub_.msg_.header.stamp = ros::Time::now();
-      pub_.msg_.trajectory.resize(ts.size() - 1);
+      pub_.msg_.trajectory.resize(ts.size());
       for (std::size_t i = 0; i < ts.size(); ++i) {
-        if (i == 0) {
-          pub_.msg.actual.header.frame_id = odom_frame_;
-          crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.actual, ts[i],
-                                xs[i].head(model_.nq), xs[i].tail(model_.nv),
-                                a_null_, us[i], ps[i], pds[i], fs[i], ss[i]);
-        } else {
-          pub_.msg_.trajectory[i - 1].header.frame_id = odom_frame_;
-          crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i - 1],
-                                ts[i], xs[i].head(model_.nq),
-                                xs[i].tail(model_.nv), a_null_, us[i], ps[i],
-                                pds[i], fs[i], ss[i]);
-        }
+        pub_.msg_.trajectory[i].header.frame_id = odom_frame_;
+        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i - 1], ts[i],
+                              xs[i].head(model_.nq), xs[i].tail(model_.nv),
+                              a_null_, us[i], ps[i], pds[i], fs[i], ss[i]);
       }
       pub_.unlockAndPublish();
     } else {
