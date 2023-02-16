@@ -295,11 +295,10 @@ static inline void toMsg(
     const ContactType type = static_cast<ContactType>(std::get<1>(force));
     switch (type) {
     case ContactType::LOCOMOTION:
-      msg.contacts[i].status = whole_body_state_msgs::ContactState::LOCOMOTION;
+      msg.contacts[i].type = whole_body_state_msgs::ContactState::LOCOMOTION;
       break;
     case ContactType::MANIPULATION:
-      msg.contacts[i].status =
-          whole_body_state_msgs::ContactState::MANIPULATION;
+      msg.contacts[i].type = whole_body_state_msgs::ContactState::MANIPULATION;
       break;
     }
     const ContactStatus status = static_cast<ContactStatus>(std::get<2>(force));
