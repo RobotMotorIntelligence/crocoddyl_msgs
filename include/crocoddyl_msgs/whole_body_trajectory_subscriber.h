@@ -14,9 +14,6 @@
 #include <mutex>
 #include <ros/node_handle.h>
 
-// #include <boost/python.hpp>
-// #include "pinocchio_pybind11_compatibility.hpp"
-
 namespace crocoddyl_msgs {
 
 class WholeBodyTrajectoryRosSubscriber {
@@ -66,8 +63,9 @@ public:
       std::vector<Eigen::VectorXd>,
       std::vector<std::map<std::string, pinocchio::SE3>>,
       std::vector<std::map<std::string, pinocchio::Motion>>,
-      std::vector<std::map<std::string,
-                           std::tuple<pinocchio::Force, uint8_t, uint8_t>>>,
+      std::vector<
+          std::map<std::string,
+                   std::tuple<pinocchio::Force, ContactType, ContactStatus>>>,
       std::vector<std::map<std::string, std::pair<Eigen::Vector3d, double>>>>
   get_trajectory() {
     // start processing the message
@@ -112,8 +110,8 @@ private:
       ps_; //!< Vector of contact positions
   std::vector<std::map<std::string, pinocchio::Motion>>
       pds_; //!< Vector of contact velocities
-  std::vector<
-      std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>>
+  std::vector<std::map<
+      std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>>>
       fs_; //!< Vector of contact forces, types and statuses
   std::vector<std::map<std::string, std::pair<Eigen::Vector3d, double>>>
       ss_;           //!< Vector of contact surfaces and friction coefficients

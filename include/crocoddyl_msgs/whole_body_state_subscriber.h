@@ -14,9 +14,6 @@
 #include <mutex>
 #include <ros/node_handle.h>
 
-// #include <boost/python.hpp>
-// #include "pinocchio_pybind11_compatibility.hpp"
-
 namespace crocoddyl_msgs {
 
 class WholeBodyStateRosSubscriber {
@@ -59,17 +56,20 @@ public:
   /**
    * @brief Get the latest whole-body state
    *
+   * @todo: Use Pinocchio objects once there is a pybind11 support of std
+   * containers
+   *
    * @return  A tuple with the time at the beginning of the interval,
-   * generalized position, generalized velocity, generalized acceleration, joint
-   * efforts, contact position, contact velocity, contact force (wrench, type,
-   * status), and contact surface (norm and friction coefficient).
+   * generalized position, generalized velocity, joint efforts, contact
+   * position, contact velocity, contact force (wrench, type, status), and
+   * contact surface (norm and friction coefficient).
    */
-  std::tuple<
-      double, Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd,
-      Eigen::VectorXd, std::map<std::string, pinocchio::SE3>,
-      std::map<std::string, pinocchio::Motion>,
-      std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>,
-      std::map<std::string, std::pair<Eigen::Vector3d, double>>>
+  std::tuple<double, Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd,
+             std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>>,
+             std::map<std::string, Eigen::VectorXd>,
+             std::map<std::string,
+                      std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>,
+             std::map<std::string, std::pair<Eigen::Vector3d, double>>>
   get_state() {
     // start processing the message
     is_processing_msg_ = true;
@@ -79,7 +79,20 @@ public:
     // finish processing the message
     is_processing_msg_ = false;
     has_new_msg_ = false;
-    return {t_, q_, v_, a_, tau_, p_, pd_, f_, s_};
+    // create maps that do not depend on Pinocchio objects
+    for (auto it = p_.cbegin(); it != p_.cend(); ++it) {
+      p_tmp_[it->first] =
+          std::make_pair(it->second.translation(), it->second.rotation());
+    }
+    for (auto it = pd_.cbegin(); it != pd_.cend(); ++it) {
+      pd_tmp_[it->first] = it->second.toVector();
+    }
+    for (auto it = f_.cbegin(); it != f_.cend(); ++it) {
+      f_tmp_[it->first] =
+          std::make_tuple(std::get<0>(it->second).toVector(),
+                          std::get<1>(it->second), std::get<2>(it->second));
+    }
+    return {t_, q_, v_, tau_, p_tmp_, pd_tmp_, f_tmp_, s_};
   }
 
   /**
@@ -99,7 +112,8 @@ private:
   Eigen::VectorXd tau_; ///< Torque vector (size njoints)
   std::map<std::string, pinocchio::SE3> p_;     //!< Contact position
   std::map<std::string, pinocchio::Motion> pd_; //!< Contact velocity
-  std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>
+  std::map<std::string,
+           std::tuple<pinocchio::Force, ContactType, ContactStatus>>
       f_; //!< Contact force, type and status
   std::map<std::string, std::pair<Eigen::Vector3d, double>>
       s_;                  //!< Contact surface and friction coefficient
@@ -109,6 +123,12 @@ private:
   std::string odom_frame_;
   pinocchio::Model model_;
   pinocchio::Data data_;
+  // TODO(cmastalli): Temporal variables as it is needed std container support
+  // in Pinocchio
+  std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>> p_tmp_;
+  std::map<std::string, Eigen::VectorXd> pd_tmp_;
+  std::map<std::string, std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>
+      f_tmp_;
   void callback(const whole_body_state_msgs::WholeBodyStateConstPtr &msg) {
     if (msg->header.frame_id != odom_frame_) {
       ROS_ERROR_STREAM("Error: the whole-body state is not expressed in "

@@ -21,6 +21,12 @@
 #include <pinocchio/spatial/force.hpp>
 #include <pinocchio/spatial/motion.hpp>
 
+#include <pinocchio/bindings/python/pybind11.hpp>
+#define SCALAR double
+#define OPTIONS 0
+#define JOINT_MODEL_COLLECTION ::pinocchio::JointCollectionDefaultTpl
+#include <pinocchio/bindings/python/pybind11-all.hpp>
+
 #include "crocoddyl_msgs/Control.h"
 #include "crocoddyl_msgs/FeedbackGain.h"
 #include "crocoddyl_msgs/State.h"

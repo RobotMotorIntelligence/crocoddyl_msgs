@@ -56,8 +56,9 @@ public:
           const std::vector<Eigen::VectorXd> &us,
           const std::vector<std::map<std::string, pinocchio::SE3>> &ps,
           const std::vector<std::map<std::string, pinocchio::Motion>> &pds,
-          const std::vector<std::map<
-              std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>> &fs,
+          const std::vector<
+              std::map<std::string, std::tuple<pinocchio::Force, ContactType,
+                                               ContactStatus>>> &fs,
           const std::vector<
               std::map<std::string, std::pair<Eigen::Vector3d, double>>> &ss) {
     if (pub_.trylock()) {

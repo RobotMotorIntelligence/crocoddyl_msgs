@@ -43,7 +43,6 @@ public:
    * @param t[in]    Time in secs
    * @param q[in]    Configuration vector (dimension: model.nq)
    * @param v[in]    Generalized velocity (dimension: model.nv)
-   * @param a[in]    Generalized acceleration (dimension: model.nv)
    * @param tau[in]  Joint effort (dimension: model.nv)
    * @param p[in]    Contact position
    * @param pd[in]   Contact velocity
