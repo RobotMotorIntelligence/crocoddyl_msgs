@@ -134,7 +134,7 @@ static inline void toMsg(crocoddyl_msgs::Control &msg,
  * @param s[in]      Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
-void toMsg(
+static inline void toMsg(
     const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
     pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
     whole_body_state_msgs::WholeBodyState &msg, const double t,
@@ -436,7 +436,7 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
  * @param s[out]     Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
-void fromMsg(
+static inline void fromMsg(
     const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
     pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
     const whole_body_state_msgs::WholeBodyState &msg, double &t,
