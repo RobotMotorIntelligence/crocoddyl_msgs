@@ -23,11 +23,12 @@ class TestSolverStatistics(unittest.TestCase):
         dyn_feas = 1e-5 * random.uniform(0., 10.)
         eq_feas = 1e-5 * random.uniform(0., 10.)
         ineq_feas = 1e-5 * random.uniform(0., 10.)
-        for _ in range(2):
+        while True:
             pub.publish(iterations, total_time, solve_time, cost,
                         regularization, step_length, dyn_feas, eq_feas,
                         ineq_feas)
-            time.sleep(1)
+            if sub.has_new_msg():
+                break
         # get solver statistics
         _iterations, _total_time, _solve_time, _cost, _regularization, _step_length, _dyn_feas, _eq_feas, _ineq_feas = sub.get_solver_statistics(
         )

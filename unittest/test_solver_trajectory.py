@@ -40,9 +40,10 @@ class TestSolverTrajectory(unittest.TestCase):
             param = ControlParametrization.POLYTWO
         types = [type for _ in range(N)]
         params = [param for _ in range(N)]
-        for _ in range(2):
+        while True:
             pub.publish(ts, dts, xs, dxs, us, Ks, types, params)
-            time.sleep(1)
+            if sub.has_new_msg():
+                break
         # get solver trajectory
         _ts, _dts, _xs, _dxs, _us, _Ks, _types, _params = sub.get_solver_trajectory(
         )
