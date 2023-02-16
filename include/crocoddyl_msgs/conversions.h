@@ -144,8 +144,8 @@ static inline void toMsg(
     const Eigen::Ref<const Eigen::VectorXd> &tau,
     const std::map<std::string, pinocchio::SE3> &p,
     const std::map<std::string, pinocchio::Motion> &pd,
-    const std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>>
-        &f,
+    const std::map<std::string,
+                   std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
     const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
   if (q.size() != model.nq) {
     throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
@@ -185,7 +185,7 @@ static inline void toMsg(
   msg.time = t;
   msg.header.stamp = ros::Time(t);
   // Filling the centroidal state
-  pinocchio::centerOfMass(model, data, q, v);
+  pinocchio::centerOfMass(model, data, q, v, a);
   // Center of mass
   msg.centroidal.com_position.x = data.com[0].x();
   msg.centroidal.com_position.y = data.com[0].y();
@@ -250,9 +250,9 @@ static inline void toMsg(
     if (pd_it == pd.end()) {
       throw std::runtime_error("Frame '" + name + "' not found in pd.");
     }
-    std::map<std::string,
-             std::tuple<pinocchio::Force, uint8_t, uint8_t>>::const_iterator
-        f_it = f.find(name);
+    std::map<std::string, std::tuple<pinocchio::Force, ContactType,
+                                     ContactStatus>>::const_iterator f_it =
+        f.find(name);
     if (f_it == f.end()) {
       throw std::runtime_error("Frame '" + name + "' not found in f.");
     }
@@ -290,9 +290,10 @@ static inline void toMsg(
   }
   i = 0;
   for (const auto &f_item : f) {
-    const std::tuple<pinocchio::Force, uint8_t, uint8_t> &force = f_item.second;
+    const std::tuple<pinocchio::Force, ContactType, ContactStatus> &force =
+        f_item.second;
     const pinocchio::Force &wrench = std::get<0>(force);
-    const ContactType type = static_cast<ContactType>(std::get<1>(force));
+    const ContactType type = std::get<1>(force);
     switch (type) {
     case ContactType::LOCOMOTION:
       msg.contacts[i].type = whole_body_state_msgs::ContactState::LOCOMOTION;
@@ -301,7 +302,7 @@ static inline void toMsg(
       msg.contacts[i].type = whole_body_state_msgs::ContactState::MANIPULATION;
       break;
     }
-    const ContactStatus status = static_cast<ContactStatus>(std::get<2>(force));
+    const ContactStatus status = std::get<2>(force);
     switch (status) {
     case ContactStatus::UNKNOWN:
       msg.contacts[i].status = whole_body_state_msgs::ContactState::UNKNOWN;
@@ -435,16 +436,17 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
  * @param s[out]     Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
-static inline void fromMsg(
-    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
-    pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
-    const whole_body_state_msgs::WholeBodyState &msg, double &t,
-    Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> v,
-    Eigen::Ref<Eigen::VectorXd> a, Eigen::Ref<Eigen::VectorXd> tau,
-    std::map<std::string, pinocchio::SE3> &p,
-    std::map<std::string, pinocchio::Motion> &pd,
-    std::map<std::string, std::tuple<pinocchio::Force, uint8_t, uint8_t>> &f,
-    std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+static inline void
+fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+        pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
+        const whole_body_state_msgs::WholeBodyState &msg, double &t,
+        Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> v,
+        Eigen::Ref<Eigen::VectorXd> a, Eigen::Ref<Eigen::VectorXd> tau,
+        std::map<std::string, pinocchio::SE3> &p,
+        std::map<std::string, pinocchio::Motion> &pd,
+        std::map<std::string,
+                 std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
+        std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
   if (q.size() != model.nq) {
     throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
                                 " but received " + std::to_string(q.size()));
@@ -502,7 +504,7 @@ static inline void fromMsg(
   }
   if (nv_root == 6) {
     pinocchio::normalize(model, q);
-    pinocchio::centerOfMass(model, data, q, v);
+    pinocchio::centerOfMass(model, data, q, v, a);
     q(0) = msg.centroidal.com_position.x - data.com[0](0);
     q(1) = msg.centroidal.com_position.y - data.com[0](1);
     q(2) = msg.centroidal.com_position.z - data.com[0](2);
