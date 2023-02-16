@@ -29,7 +29,7 @@ public:
       pinocchio::Model &model,
       const std::string &topic = "/crocoddyl/whole_body_state",
       const std::string &frame = "odom")
-      : model_(model), data_(model), odom_frame_(frame) {
+      : model_(model), data_(model), odom_frame_(frame), a_(model.nv) {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
     pub_.msg_.header.frame_id = frame;
@@ -53,17 +53,16 @@ public:
   void
   publish(const double t, const Eigen::Ref<const Eigen::VectorXd> &q,
           const Eigen::Ref<const Eigen::VectorXd> &v,
-          const Eigen::Ref<const Eigen::VectorXd> &a,
           const Eigen::Ref<const Eigen::VectorXd> &tau,
           const std::map<std::string, pinocchio::SE3> &p,
           const std::map<std::string, pinocchio::Motion> &pd,
-          const std::map<std::string,
-                         std::tuple<pinocchio::Force, uint8_t, uint8_t>> &f,
+          const std::map<std::string, std::tuple<pinocchio::Force, ContactType,
+                                                 ContactStatus>> &f,
           const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
     if (pub_.trylock()) {
       pub_.msg_.header.frame_id = odom_frame_;
-      crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, q, v, a, tau, p, pd, f,
-                            s);
+      crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, q, v, a_, tau, p, pd,
+                            f, s);
       pub_.unlockAndPublish();
     }
   }
@@ -73,6 +72,7 @@ private:
   pinocchio::Model model_;
   pinocchio::Data data_;
   std::string odom_frame_;
+  Eigen::VectorXd a_;
 };
 
 } // namespace crocoddyl_msgs
