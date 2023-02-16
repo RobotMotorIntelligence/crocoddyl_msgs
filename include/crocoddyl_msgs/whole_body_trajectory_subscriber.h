@@ -61,11 +61,11 @@ public:
   std::tuple<
       std::vector<double>, std::vector<Eigen::VectorXd>,
       std::vector<Eigen::VectorXd>,
-      std::vector<std::map<std::string, pinocchio::SE3>>,
-      std::vector<std::map<std::string, pinocchio::Motion>>,
       std::vector<
-          std::map<std::string,
-                   std::tuple<pinocchio::Force, ContactType, ContactStatus>>>,
+          std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>>>,
+      std::vector<std::map<std::string, Eigen::VectorXd>>,
+      std::vector<std::map<std::string, std::tuple<Eigen::VectorXd, ContactType,
+                                                   ContactStatus>>>,
       std::vector<std::map<std::string, std::pair<Eigen::Vector3d, double>>>>
   get_trajectory() {
     // start processing the message
@@ -82,15 +82,34 @@ public:
     ss_.resize(N);
     for (std::size_t i = 0; i < N; ++i) {
       xs_[i].resize(nx_);
-      us_[i].resize(nx_);
+      us_[i].resize(nu_);
       crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i],
                               xs_[i].head(model_.nq), xs_[i].tail(model_.nv),
                               a_null_, us_[i], ps_[i], pds_[i], fs_[i], ss_[i]);
+      // create maps that do not depend on Pinocchio objects
+      ps_tmp_.resize(N);
+      pds_tmp_.resize(N);
+      fs_tmp_.resize(N);
+      for (auto it = ps_[i].cbegin(); it != ps_[i].cend(); ++it) {
+        p_tmp_[it->first] =
+            std::make_pair(it->second.translation(), it->second.rotation());
+      }
+      ps_tmp_[i] = p_tmp_;
+      for (auto it = pds_[i].cbegin(); it != pds_[i].cend(); ++it) {
+        pd_tmp_[it->first] = it->second.toVector();
+      }
+      pds_tmp_[i] = pd_tmp_;
+      for (auto it = fs_[i].cbegin(); it != fs_[i].cend(); ++it) {
+        f_tmp_[it->first] =
+            std::make_tuple(std::get<0>(it->second).toVector(),
+                            std::get<1>(it->second), std::get<2>(it->second));
+      }
+      fs_tmp_[i] = f_tmp_;
     }
     // finish processing the message
     is_processing_msg_ = false;
     has_new_msg_ = false;
-    return {ts_, xs_, us_, ps_, pds_, fs_, ss_};
+    return {ts_, xs_, us_, ps_tmp_, pds_tmp_, fs_tmp_, ss_};
   }
 
   /**
@@ -124,6 +143,19 @@ private:
   Eigen::VectorXd a_null_;
   std::size_t nx_;
   std::size_t nu_;
+  // TODO(cmastalli): Temporal variables as it is needed std container support
+  // in Pinocchio
+  std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>> p_tmp_;
+  std::map<std::string, Eigen::VectorXd> pd_tmp_;
+  std::map<std::string, std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>
+      f_tmp_;
+  std::vector<
+      std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>>>
+      ps_tmp_;
+  std::vector<std::map<std::string, Eigen::VectorXd>> pds_tmp_;
+  std::vector<std::map<std::string,
+                       std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>>
+      fs_tmp_;
   void callback(const whole_body_state_msgs::WholeBodyTrajectoryConstPtr &msg) {
     if (msg->header.frame_id != odom_frame_) {
       ROS_ERROR_STREAM("Error: the whole-body trajectory is not expressed in "

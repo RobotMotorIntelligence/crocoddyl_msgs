@@ -91,13 +91,12 @@ public:
             "If provided, the size of the ss vector needs to equal the size of "
             "the ts vector.");
       }
-
       pub_.msg_.header.frame_id = odom_frame_;
       pub_.msg_.header.stamp = ros::Time::now();
       pub_.msg_.trajectory.resize(ts.size());
       for (std::size_t i = 0; i < ts.size(); ++i) {
         pub_.msg_.trajectory[i].header.frame_id = odom_frame_;
-        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i - 1], ts[i],
+        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i],
                               xs[i].head(model_.nq), xs[i].tail(model_.nv),
                               a_null_, us[i], ps[i], pds[i], fs[i], ss[i]);
       }
