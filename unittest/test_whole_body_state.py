@@ -9,7 +9,7 @@ from crocoddyl_ros import WholeBodyStateRosPublisher, WholeBodyStateRosSubscribe
 import unittest
 
 
-class TestWhoelBodyState(unittest.TestCase):
+class TestWholeBodyState(unittest.TestCase):
 
     def test_bindings(self):
         rospy.init_node('crocoddyl_ros', anonymous=True)
