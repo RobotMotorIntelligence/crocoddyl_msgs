@@ -134,15 +134,13 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param t: time in secs\n"
            ":param q: configuration vector (dimension: model.nq)\n"
            ":param v: generalized velocity (dimension: model.nv)\n"
-           ":param a: generalized acceleration (dimension: model.nv)\n"
            ":param tau: joint effort\n"
            ":param p: contact position\n"
            ":param pd: contact velocity\n"
            ":param f: contact force, type and status\n"
            ":param s: contact surface and friction coefficient",
-           py::arg("t"), py::arg("q"), py::arg("v"), py::arg("a"),
-           py::arg("tau"), py::arg("p"), py::arg("pd"), py::arg("f"),
-           py::arg("s"));
+           py::arg("t"), py::arg("q"), py::arg("v"), py::arg("tau"),
+           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"));
 
   py::class_<WholeBodyStateRosSubscriber,
              std::unique_ptr<WholeBodyStateRosSubscriber, py::nodelete>>(
