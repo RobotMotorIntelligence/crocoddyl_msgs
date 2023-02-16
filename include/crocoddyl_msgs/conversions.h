@@ -44,7 +44,7 @@ enum ContactStatus { UNKNOWN = 0, SEPARATION, STICKING, SLIPPING };
  * @param[in] K     Feedback gain (size nu * nx)
  */
 static inline void toMsg(crocoddyl_msgs::FeedbackGain &msg,
-                         const Eigen::Ref<const Eigen::VectorXd> &K) {
+                         const Eigen::Ref<const Eigen::MatrixXd> &K) {
   msg.nu = static_cast<uint32_t>(K.rows());
   msg.nx = static_cast<uint32_t>(K.cols());
   msg.data.resize(msg.nx * msg.nu);

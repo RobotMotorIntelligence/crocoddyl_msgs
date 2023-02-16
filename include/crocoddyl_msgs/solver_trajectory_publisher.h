@@ -87,8 +87,12 @@ public:
         throw std::invalid_argument("The size of the ts vector needs to equal "
                                     "the size of the params.");
       }
+      const std::size_t N = ts.size();
       pub_.msg_.header.stamp = ros::Time::now();
-      for (std::size_t i = 0; i < ts.size(); ++i) {
+      pub_.msg_.intervals.resize(N);
+      pub_.msg_.state_trajectory.resize(N);
+      pub_.msg_.control_trajectory.resize(N);
+      for (std::size_t i = 0; i < N; ++i) {
         pub_.msg_.intervals[i].time = ts[i];
         pub_.msg_.intervals[i].duration = dts[i];
         crocoddyl_msgs::toMsg(pub_.msg_.state_trajectory[i], xs[i], dxs[i]);
