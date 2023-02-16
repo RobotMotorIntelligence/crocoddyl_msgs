@@ -76,9 +76,6 @@ public:
     std::lock_guard<std::mutex> guard(mutex_);
     crocoddyl_msgs::fromMsg(model_, data_, msg_, t_, q_, v_, a_, tau_, p_, pd_,
                             f_, s_);
-    // finish processing the message
-    is_processing_msg_ = false;
-    has_new_msg_ = false;
     // create maps that do not depend on Pinocchio objects
     for (auto it = p_.cbegin(); it != p_.cend(); ++it) {
       p_tmp_[it->first] =
@@ -92,6 +89,9 @@ public:
           std::make_tuple(std::get<0>(it->second).toVector(),
                           std::get<1>(it->second), std::get<2>(it->second));
     }
+    // finish processing the message
+    is_processing_msg_ = false;
+    has_new_msg_ = false;
     return {t_, q_, v_, tau_, p_tmp_, pd_tmp_, f_tmp_, s_};
   }
 
