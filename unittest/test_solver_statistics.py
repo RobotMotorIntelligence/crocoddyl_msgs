@@ -9,13 +9,12 @@ import unittest
 class TestSolverStatistics(unittest.TestCase):
 
     def test_bindings(self):
-        
         rospy.init_node('crocoddyl_ros', anonymous=True)
         sub = SolverStatisticsRosSubscriber()
         pub = SolverStatisticsRosPublisher()
         time.sleep(1)
-
-        iterations = int(random.uniform(0., 10.))
+        # publish solver statistics messages
+        iterations = random.randint(0, 10)
         total_time = random.uniform(0., 10.)
         solve_time = random.uniform(0., 10.)
         cost = random.uniform(0., 10.)
@@ -29,11 +28,10 @@ class TestSolverStatistics(unittest.TestCase):
                         regularization, step_length, dyn_feas, eq_feas,
                         ineq_feas)
             time.sleep(1)
-
+        # get solver statistics
         _iterations, _total_time, _solve_time, _cost, _regularization, _step_length, _dyn_feas, _eq_feas, _ineq_feas = sub.get_solver_statistics(
         )
-        print(sub.get_solver_statistics())
-        self.assertEqual(iterations, _iterations)
+        self.assertEqual(iterations, _iterations, "Wrong number of iterations")
         self.assertAlmostEqual(total_time, _total_time, places=5)
         self.assertAlmostEqual(solve_time, _solve_time, places=5)
         self.assertAlmostEqual(cost, _cost, places=5)
@@ -45,6 +43,9 @@ class TestSolverStatistics(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    roscore = subprocess.Popen("roscore", stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
+    roscore = subprocess.Popen("roscore",
+                               stdout=subprocess.PIPE,
+                               shell=True,
+                               preexec_fn=os.setsid)
     unittest.main()
     os.killpg(os.getpgid(roscore.pid), signal.SIGTERM)
