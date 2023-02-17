@@ -1,4 +1,4 @@
-
+#include <pinocchio/fwd.hpp>
 
 #ifdef CROCODDYL_MSG_DISABLE_PYBIND11_WARNINGS
 #pragma clang diagnostic push

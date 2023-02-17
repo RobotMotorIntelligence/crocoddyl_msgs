@@ -1,0 +1,17 @@
+name: ROS-CI
+on: [push, pull_request]
+
+jobs:
+  CI:
+    strategy:
+      matrix:
+        env:
+          - {ROS_DISTRO: noetic}
+    env:
+      PRERELEASE: true
+      UPSTREAM_WORKSPACE: dependencies.rosinstall
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: 'ros-industrial/industrial_ci@master'
+        env: ${{ matrix.env }}

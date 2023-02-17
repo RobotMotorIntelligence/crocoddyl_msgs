@@ -29,7 +29,7 @@ public:
       pinocchio::Model &model,
       const std::string &topic = "/crocoddyl/whole_body_state",
       const std::string &frame = "odom")
-      : model_(model), data_(model), odom_frame_(frame), a_(model.nv) {
+      : model_(model), data_(model), odom_frame_(frame), a_(Eigen::VectorXd::Zero(model.nv)) {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
     pub_.msg_.header.frame_id = frame;

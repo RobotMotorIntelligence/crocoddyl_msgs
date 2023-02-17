@@ -7,7 +7,7 @@ SET(PROJECT_DESCRIPTION "Crocoddyl ROS messages")
 
 # Print initial message
 MESSAGE(STATUS "${PROJECT_DESCRIPTION}, version ${PROJECT_VERSION}")
-MESSAGE(STATUS "Copyright (C) 2023 Heriot-Watt University")
+MESSAGE(STATUS "Copyright (C) 2020-2023 Heriot-Watt University, University of Oxford")
 MESSAGE(STATUS "All rights reserved.")
 MESSAGE(STATUS "Released under the BSD 3-Clause License.")
 
@@ -52,7 +52,7 @@ SET(${PROJECT_NAME}_PYBIND11_MODULE
 )
 
 IF(APPLE AND ${pybind11_catkin_VERSION} VERSION_LESS "2.10.3")
-ADD_DEFINITIONS(-DCROCODDYL_MSG_DISABLE_PYBIND11_WARNINGS)
+  ADD_DEFINITIONS(-DCROCODDYL_MSG_DISABLE_PYBIND11_WARNINGS)
 ENDIF()
 
 # Build the Python interface for the ROS publisher and subscriber

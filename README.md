@@ -1,4 +1,4 @@
-Crocoddyl ROS message
+Crocoddyl ROS messages
 ==============================================
 
 ## <img align="center" height="20" src="https://i.imgur.com/vAYeCzC.png"/> Introduction
@@ -13,7 +13,7 @@ Furthermore, the Python bindings of publishers and subscribers using roscpp help
 * [std_msgs](http://wiki.ros.org/std_msgs)
 * [whole_body_state_msgs](https://github.com/loco-3d/whole_body_state_msgs)
 * [realtime_tools](http://wiki.ros.org/realtime_tools)
-* [pybind11](https://pybind11.readthedocs.io/en/stable/basics.html)
+* [pybind11_catkin](https://github.com/wxmerkt/pybind11_catkin), wrapping [pybind11](https://pybind11.readthedocs.io/en/stable/basics.html) for use in ROS1
 * [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
 * [pinocchio](https://github.com/stack-of-tasks/pinocchio)
 
@@ -27,9 +27,6 @@ To compile this catkin project you need to do:
 ### :writing_hand: Written by
 
 - [Carlos Mastalli](https://romilab.org), Heriot-Watt University :uk:
-
-### :construction_worker: With contributions from
-
 - [Wolfgang Merkt](http://www.wolfgangmerkt.com/research/), University of Oxford :uk:
 
 and maintained by the [Robot Motor Intelligence (RoMI)](https://romilab.org) lab.

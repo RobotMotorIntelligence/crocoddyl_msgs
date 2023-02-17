@@ -19,6 +19,7 @@
   <depend>whole_body_state_msgs</depend>
   <depend>realtime_tools</depend>
   <depend>pybind11_catkin</depend>
+  <depend>pinocchio</depend>
 
   <build_depend>rospy</build_depend>
   <build_depend>message_generation</build_depend>
@@ -28,5 +29,5 @@
   <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-numpy</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-numpy</exec_depend>
 
-  <test_depend>rosunit</test_depend>
+  <test_depend>rostest</test_depend>
 </package>
