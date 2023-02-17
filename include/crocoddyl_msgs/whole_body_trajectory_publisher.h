@@ -33,7 +33,7 @@ public:
       const std::string &frame = "odom", int queue = 10)
       : model_(model), data_(model), odom_frame_(frame), a_null_(model.nv) {
     ros::NodeHandle n;
-    pub_.init(n, topic, 1);
+    pub_.init(n, topic, queue);
     pub_.msg_.header.frame_id = frame;
     a_null_.setZero();
     std::cout << "Ready to send whole-body trajectory" << std::endl;

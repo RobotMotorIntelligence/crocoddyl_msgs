@@ -74,10 +74,10 @@ static inline void toMsg(crocoddyl_msgs::State &msg,
                          const Eigen::Ref<const Eigen::VectorXd> &dx) {
   msg.x.resize(x.size());
   msg.dx.resize(dx.size());
-  for (std::size_t i = 0; i < x.size(); ++i) {
+  for (int i = 0; i < x.size(); ++i) {
     msg.x[i] = x(i);
   }
-  for (std::size_t i = 0; i < dx.size(); ++i) {
+  for (int i = 0; i < dx.size(); ++i) {
     msg.dx[i] = dx(i);
   }
 }
@@ -98,7 +98,7 @@ static inline void toMsg(crocoddyl_msgs::Control &msg,
                          const ControlType type,
                          const ControlParametrization parametrization) {
   msg.u.resize(u.size());
-  for (std::size_t i = 0; i < u.size(); ++i) {
+  for (int i = 0; i < u.size(); ++i) {
     msg.u[i] = u(i);
   }
   toMsg(msg.gain, K);
@@ -271,7 +271,6 @@ static inline void toMsg(
   }
   i = 0;
   for (const auto &p_item : p) {
-    const std::string &name = p_item.first;
     const pinocchio::SE3 &pose = p_item.second;
     pinocchio::SE3::Quaternion quaternion(pose.rotation());
     msg.contacts[i].pose.position.x = pose.translation().x();
@@ -379,12 +378,12 @@ static inline void fromMsg(const crocoddyl_msgs::FeedbackGain &msg,
 static inline void fromMsg(const crocoddyl_msgs::State &msg,
                            Eigen::Ref<Eigen::VectorXd> x,
                            Eigen::Ref<Eigen::VectorXd> dx) {
-  if (x.size() != msg.x.size()) {
+  if (static_cast<std::size_t>(x.size()) != msg.x.size()) {
     throw std::invalid_argument("Expected x to be " +
                                 std::to_string(msg.x.size()) +
                                 " but received " + std::to_string(x.size()));
   }
-  if (dx.size() != msg.dx.size()) {
+  if (static_cast<std::size_t>(dx.size()) != msg.dx.size()) {
     throw std::invalid_argument("Expected dx to be " +
                                 std::to_string(msg.dx.size()) +
                                 " but received " + std::to_string(dx.size()));
@@ -411,7 +410,7 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
                            Eigen::Ref<Eigen::VectorXd> u,
                            Eigen::Ref<Eigen::MatrixXd> K, ControlType &type,
                            ControlParametrization &parametrization) {
-  if (u.size() != msg.u.size()) {
+  if (static_cast<std::size_t>(u.size()) != msg.u.size()) {
     throw std::invalid_argument("Expected u to be " +
                                 std::to_string(msg.u.size()) +
                                 " but received " + std::to_string(u.size()));

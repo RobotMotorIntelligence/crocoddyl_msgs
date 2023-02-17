@@ -5,7 +5,7 @@ import rospy
 from crocoddyl_ros import ControlType, ControlParametrization
 from crocoddyl_ros import SolverTrajectoryRosPublisher, SolverTrajectoryRosSubscriber
 import unittest
-import rostest
+import rosunit
 
 
 class TestSolverTrajectory(unittest.TestCase):
@@ -64,4 +64,5 @@ class TestSolverTrajectory(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rostest.rosrun("crocoddyl_msgs", "solver_trajectory", TestSolverTrajectory)
+    rosunit.unitrun("crocoddyl_msgs", "solver_trajectory",
+                    TestSolverTrajectory)

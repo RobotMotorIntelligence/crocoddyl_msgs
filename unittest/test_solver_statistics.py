@@ -3,7 +3,7 @@ import random
 import rospy
 from crocoddyl_ros import SolverStatisticsRosPublisher, SolverStatisticsRosSubscriber
 import unittest
-import rostest
+import rosunit
 
 
 class TestSolverStatistics(unittest.TestCase):
@@ -44,4 +44,5 @@ class TestSolverStatistics(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rostest.rosrun("crocoddyl_msgs", "solver_statistics", TestSolverStatistics)
+    rosunit.unitrun("crocoddyl_msgs", "solver_statistics",
+                    TestSolverStatistics)

@@ -1,9 +1,20 @@
 
 
+#ifdef CROCODDYL_MSG_DISABLE_PYBIND11_WARNINGS
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#pragma clang diagnostic pop
+#else
+#include <pybind11/eigen.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#endif
 
 #include "crocoddyl_msgs/solver_statistics_publisher.h"
 #include "crocoddyl_msgs/solver_statistics_subscriber.h"

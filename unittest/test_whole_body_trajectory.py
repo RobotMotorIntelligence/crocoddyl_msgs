@@ -6,7 +6,7 @@ import pinocchio
 from crocoddyl_ros import ContactType, ContactStatus
 from crocoddyl_ros import WholeBodyTrajectoryRosPublisher, WholeBodyTrajectoryRosSubscriber
 import unittest
-import rostest
+import rosunit
 
 
 class TestWholeBodyTrajectory(unittest.TestCase):
@@ -108,5 +108,5 @@ class TestWholeBodyTrajectory(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rostest.rosrun("crocoddyl_msgs", "whole_body_trajectory",
-                   TestWholeBodyTrajectory)
+    rosunit.unitrun("crocoddyl_msgs", "whole_body_trajectory",
+                    TestWholeBodyTrajectory)
