@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="test_name"/>
+  <test test-name="$(arg test_name)" pkg="crocoddyl_msgs" type="test_$(arg test_name).py" />
+</launch>
