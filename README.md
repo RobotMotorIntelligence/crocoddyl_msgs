@@ -27,9 +27,6 @@ To compile this catkin project you need to do:
 ### :writing_hand: Written by
 
 - [Carlos Mastalli](https://romilab.org), Heriot-Watt University :uk:
-
-### :construction_worker: With contributions from
-
 - [Wolfgang Merkt](http://www.wolfgangmerkt.com/research/), University of Oxford :uk:
 
 and maintained by the [Robot Motor Intelligence (RoMI)](https://romilab.org) lab.

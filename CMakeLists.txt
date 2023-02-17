@@ -7,7 +7,7 @@ SET(PROJECT_DESCRIPTION "Crocoddyl ROS messages")
 
 # Print initial message
 MESSAGE(STATUS "${PROJECT_DESCRIPTION}, version ${PROJECT_VERSION}")
-MESSAGE(STATUS "Copyright (C) 2023 Heriot-Watt University")
+MESSAGE(STATUS "Copyright (C) 2020-2023 Heriot-Watt University, University of Oxford")
 MESSAGE(STATUS "All rights reserved.")
 MESSAGE(STATUS "Released under the BSD 3-Clause License.")
 
