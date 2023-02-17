@@ -1,0 +1,4 @@
+- git:
+    uri: https://github.com/loco-3d/whole_body_state_msgs
+    version: master
+    local-name: whole_body_state_msgs
