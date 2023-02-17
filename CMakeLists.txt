@@ -17,7 +17,9 @@ FIND_PACKAGE(pinocchio REQUIRED)
 FIND_PACKAGE(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  whole_body_state_msgs
   message_generation
+  realtime_tools
   pybind11_catkin
 )
 
@@ -61,3 +63,5 @@ ENDFOREACH(PYBIND11_MODULE ${${PROJECT_NAME}_PYBIND11_MODULE})
 
 # Install the include files
 INSTALL(DIRECTORY include/${PROJECT_NAME}/  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+ADD_SUBDIRECTORY(unittest)

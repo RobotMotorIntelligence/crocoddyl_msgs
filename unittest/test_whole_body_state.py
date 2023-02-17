@@ -1,12 +1,12 @@
 import time
 import random
-import subprocess, os, signal
 import numpy as np
 import rospy
 import pinocchio
 from crocoddyl_ros import ContactType, ContactStatus
 from crocoddyl_ros import WholeBodyStateRosPublisher, WholeBodyStateRosSubscriber
 import unittest
+import rostest
 
 
 class TestWholeBodyState(unittest.TestCase):
@@ -88,9 +88,4 @@ class TestWholeBodyState(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    roscore = subprocess.Popen("roscore",
-                               stdout=subprocess.PIPE,
-                               shell=True,
-                               preexec_fn=os.setsid)
-    unittest.main()
-    os.killpg(os.getpgid(roscore.pid), signal.SIGTERM)
+    rostest.rosrun("crocoddyl_msgs", "whole_body_state", TestWholeBodyState)

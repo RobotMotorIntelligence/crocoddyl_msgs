@@ -1,9 +1,9 @@
 import time
 import random
-import subprocess, os, signal
 import rospy
 from crocoddyl_ros import SolverStatisticsRosPublisher, SolverStatisticsRosSubscriber
 import unittest
+import rostest
 
 
 class TestSolverStatistics(unittest.TestCase):
@@ -44,9 +44,4 @@ class TestSolverStatistics(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    roscore = subprocess.Popen("roscore",
-                               stdout=subprocess.PIPE,
-                               shell=True,
-                               preexec_fn=os.setsid)
-    unittest.main()
-    os.killpg(os.getpgid(roscore.pid), signal.SIGTERM)
+    rostest.rosrun("crocoddyl_msgs", "solver_statistics", TestSolverStatistics)

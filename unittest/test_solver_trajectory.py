@@ -1,11 +1,11 @@
 import time
 import random
-import subprocess, os, signal
 import numpy as np
 import rospy
 from crocoddyl_ros import ControlType, ControlParametrization
 from crocoddyl_ros import SolverTrajectoryRosPublisher, SolverTrajectoryRosSubscriber
 import unittest
+import rostest
 
 
 class TestSolverTrajectory(unittest.TestCase):
@@ -64,9 +64,4 @@ class TestSolverTrajectory(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    roscore = subprocess.Popen("roscore",
-                               stdout=subprocess.PIPE,
-                               shell=True,
-                               preexec_fn=os.setsid)
-    unittest.main()
-    os.killpg(os.getpgid(roscore.pid), signal.SIGTERM)
+    rostest.rosrun("crocoddyl_msgs", "solver_trajectory", TestSolverTrajectory)
