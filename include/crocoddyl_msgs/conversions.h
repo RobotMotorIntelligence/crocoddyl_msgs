@@ -165,9 +165,8 @@ static inline void toMsg(
     throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
                                 " but received " + std::to_string(a.size()));
   }
-  const std::size_t root_joint_id = model.frames[1].parent;
-  const std::size_t nv_root = model.joints[root_joint_id].idx_q() == 0
-                                  ? model.joints[root_joint_id].nv()
+  const std::size_t nv_root = model.joints[1].idx_q() == 0
+                                  ? model.joints[1].nv()
                                   : 0;
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints) && tau.size() != 0) {
@@ -464,9 +463,8 @@ fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
     throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
                                 " but received " + std::to_string(v.size()));
   }
-  const std::size_t root_joint_id = model.frames[1].parent;
-  const std::size_t nv_root = model.joints[root_joint_id].idx_q() == 0
-                                  ? model.joints[root_joint_id].nv()
+  const std::size_t nv_root = model.joints[1].idx_q() == 0
+                                  ? model.joints[1].nv()
                                   : 0;
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints)) {
