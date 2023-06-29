@@ -158,7 +158,10 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            py::arg("topic") = "/crocoddyl/whole_body_state",
            py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
-      .def("publish", &WholeBodyStateRosPublisher::publish,
+      .def("publish", static_cast<void (WholeBodyStateRosPublisher::*)(const double, const Eigen::Ref<const Eigen::VectorXd> &, 
+      const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &, const std::map<std::string, pinocchio::SE3> &,
+      const std::map<std::string, pinocchio::Motion> &, const std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>> &,
+      const std::map<std::string, std::pair<Eigen::Vector3d, double>> &)>(&WholeBodyStateRosPublisher::publish),
            "Publish a whole-body state ROS message.\n\n"
            ":param t: time in secs\n"
            ":param q: configuration vector (dimension: model.nq)\n"
@@ -169,7 +172,24 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param f: contact force, type and status\n"
            ":param s: contact surface and friction coefficient",
            py::arg("t"), py::arg("q"), py::arg("v"), py::arg("tau"),
-           py::arg("p") = DEFAULT_SE3, py::arg("pd") = DEFAULT_MOTION, py::arg("f") = DEFAULT_FORCE, py::arg("s") = DEFAULT_FRICTION);
+           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"))
+     .def("publish", static_cast<void (WholeBodyStateRosPublisher::*)(const double, const Eigen::Ref<const Eigen::VectorXd> &,  const Eigen::Ref<const Eigen::VectorXd> &, 
+      const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &, const std::map<std::string, pinocchio::SE3> &,
+      const std::map<std::string, pinocchio::Motion> &, const std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>> &,
+      const std::map<std::string, std::pair<Eigen::Vector3d, double>> &)>(&WholeBodyStateRosPublisher::publish),
+           "Publish a whole-body state ROS message.\n\n"
+           ":param t: time in secs\n"
+           ":param q: configuration vector (dimension: model.nq)\n"
+           ":param v: generalized velocity (dimension: model.nv)\n"
+           ":param v: generalized acceleration (dimension: model.nv)\n"
+           ":param tau: joint effort\n"
+           ":param p: contact position\n"
+           ":param pd: contact velocity\n"
+           ":param f: contact force, type and status\n"
+           ":param s: contact surface and friction coefficient",
+           py::arg("t"), py::arg("q"), py::arg("v"), py::arg("a"), py::arg("tau"),
+           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"));
+
 
   py::class_<WholeBodyStateRosSubscriber,
              std::unique_ptr<WholeBodyStateRosSubscriber, py::nodelete>>(
