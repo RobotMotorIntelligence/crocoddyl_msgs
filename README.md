@@ -1,5 +1,4 @@
-Crocoddyl ROS messages
-==============================================
+# Crocoddyl ROS messages
 
 ## <img align="center" height="20" src="https://i.imgur.com/vAYeCzC.png"/> Introduction
 
@@ -10,17 +9,20 @@ Furthermore, the Python bindings of publishers and subscribers using roscpp help
 ## :penguin: Building
 
 **crocoddyl_msgs** has the following dependencies:
-* [std_msgs](http://wiki.ros.org/std_msgs)
-* [whole_body_state_msgs](https://github.com/loco-3d/whole_body_state_msgs)
-* [realtime_tools](http://wiki.ros.org/realtime_tools)
-* [pybind11_catkin](https://github.com/wxmerkt/pybind11_catkin), wrapping [pybind11](https://pybind11.readthedocs.io/en/stable/basics.html) for use in ROS1
-* [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
-* [pinocchio](https://github.com/stack-of-tasks/pinocchio)
+
+- [std_msgs](http://wiki.ros.org/std_msgs)
+- [whole_body_state_msgs](https://github.com/loco-3d/whole_body_state_msgs)
+- [realtime_tools](http://wiki.ros.org/realtime_tools)
+- [pybind11_catkin](https://github.com/wxmerkt/pybind11_catkin), wrapping [pybind11](https://pybind11.readthedocs.io/en/stable/basics.html) for use in ROS1
+- [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
+- [pinocchio](https://github.com/stack-of-tasks/pinocchio)
 
 To compile this catkin project you need to do:
 
-	cd your_ros_ws/
-	catkin build #catkin_make
+```
+cd your_ros_ws/
+catkin build #catkin_make
+```
 
 ## :copyright: Credits
 

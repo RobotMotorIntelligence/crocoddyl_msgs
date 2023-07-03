@@ -5,7 +5,7 @@
 #  * the state's rate of change during the interval,
 # in which the state contains the robot's posture and velocity.
 #
-# The initial state and its rate of change allow us to compute the 
+# The initial state and its rate of change allow us to compute the
 # state in a desired time.
 #
 # The order of the state is designed to be consistent with the URDF.
