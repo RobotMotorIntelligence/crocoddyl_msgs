@@ -1,8 +1,8 @@
 set(${PROJECT_NAME}_PYTHON_TESTS
   solver_statistics
   solver_trajectory
-  # whole_body_state  # not working yet
-  # whole_body_trajectory  # not working yet
+  whole_body_state
+  whole_body_trajectory
 )
 
 if(CATKIN_ENABLE_TESTING)
