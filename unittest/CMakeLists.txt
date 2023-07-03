@@ -1,9 +1,5 @@
-set(${PROJECT_NAME}_PYTHON_TESTS
-  solver_statistics
-  solver_trajectory
-  whole_body_state
-  whole_body_trajectory
-)
+set(${PROJECT_NAME}_PYTHON_TESTS solver_statistics solver_trajectory
+                                 whole_body_state whole_body_trajectory)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)

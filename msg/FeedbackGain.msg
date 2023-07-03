@@ -12,5 +12,5 @@
 uint32 nx
 uint32 nu
 
-# This represents the entries of the matrix allocated by row order. 
+# This represents the entries of the matrix allocated by row order.
 float64[] data

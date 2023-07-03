@@ -3,7 +3,7 @@
   <name>crocoddyl_msgs</name>
   <version>0.0.1</version>
   <description>
-    Message structures needed to interact with Crocoddyl solvers, inputs and outputs
+    Message structures needed to interact with Crocoddyl solvers, inputs and outputs.
   </description>
 
   <maintainer email="c.mastalli@hw.ac.uk">Carlos Mastalli</maintainer>
@@ -13,6 +13,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <!-- build and runtime dependencies -->
   <depend>roscpp</depend>
   <depend>eigen</depend>
   <depend>std_msgs</depend>
@@ -21,13 +22,23 @@
   <depend>pybind11_catkin</depend>
   <depend>pinocchio</depend>
 
+  <!-- build dependencies -->
   <build_depend>rospy</build_depend>
   <build_depend>message_generation</build_depend>
 
+  <!-- runtime dependencies -->
   <exec_depend>rospy</exec_depend>
   <exec_depend>message_runtime</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-numpy</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-numpy</exec_depend>
 
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
   <test_depend>rostest</test_depend>
+
+  <export>
+    <!-- This suffers from a bug in catkin, cf.: https://github.com/ros/catkin/issues/1170 -->
+    <build_type condition="$ROS_VERSION == 1">catkin</build_type>
+    <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
+  </export>
 </package>
