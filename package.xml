@@ -42,7 +42,8 @@
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 
-  <test_depend>rostest</test_depend>
+  <!-- test dependencies -->
+  <test_depend condition="$ROS_VERSION == 1">rostest</test_depend>
 
   <export>
     <!-- This suffers from a bug in catkin, cf.: https://github.com/ros/catkin/issues/1170 -->
