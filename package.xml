@@ -23,15 +23,20 @@
   <depend>std_msgs</depend>
   <depend>whole_body_state_msgs</depend>
   <depend>realtime_tools</depend>
-  <depend>pybind11_catkin</depend>
+  <depend condition="$ROS_VERSION == 1">pybind11_catkin</depend>
+  <depend condition="$ROS_VERSION == 2">pybind11</depend>
   <depend>pinocchio</depend>
 
   <!-- build dependencies -->
+  <build_depend condition="$ROS_VERSION == 1">roscpp</build_depend>
+  <build_depend condition="$ROS_VERSION == 2">rclcpp</build_depend>
   <build_depend condition="$ROS_VERSION == 1">rospy</build_depend>
   <build_depend condition="$ROS_VERSION == 2">rclpy</build_depend>
   <build_depend condition="$ROS_VERSION == 1">message_generation</build_depend>
 
   <!-- runtime dependencies -->
+  <exec_depend condition="$ROS_VERSION == 1">roscpp</exec_depend>
+  <exec_depend condition="$ROS_VERSION == 2">rclcpp</exec_depend>
   <exec_depend condition="$ROS_VERSION == 1">rospy</exec_depend>
   <exec_depend condition="$ROS_VERSION == 2">rclpy</exec_depend>
   <exec_depend condition="$ROS_VERSION == 1">message_runtime</exec_depend>
