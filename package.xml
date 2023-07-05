@@ -24,7 +24,7 @@
   <depend>whole_body_state_msgs</depend>
   <depend>realtime_tools</depend>
   <depend condition="$ROS_VERSION == 1">pybind11_catkin</depend>
-  <depend condition="$ROS_VERSION == 2">pybind11</depend>
+  <depend condition="$ROS_VERSION == 2">pybind11_vendor</depend>
   <depend>pinocchio</depend>
 
   <!-- build dependencies -->
