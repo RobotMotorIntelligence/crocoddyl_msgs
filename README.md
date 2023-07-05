@@ -17,12 +17,15 @@ Furthermore, the Python bindings of publishers and subscribers using roscpp help
 - [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
 - [pinocchio](https://github.com/stack-of-tasks/pinocchio)
 
-To compile this catkin project you need to do:
+To compile this catkin/colcon project you need to do:
 
+```bash
+    cd your_ros_ws/
+    catkin build # ROS1
+    colcon build # ROS2
 ```
-cd your_ros_ws/
-catkin build #catkin_make
-```
+
+Note that this package supports ROS1 and ROS2.
 
 ## :copyright: Credits
 

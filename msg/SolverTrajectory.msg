@@ -9,7 +9,7 @@
 # The header specifies the time at which the message is published.
 
 # This represents the time and frame at which the message is published
-Header header
+std_msgs/Header header
 
 # This represents the time and duration of each interval
 crocoddyl_msgs/TimeInterval[] intervals

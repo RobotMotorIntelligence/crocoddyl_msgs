@@ -13,7 +13,8 @@
 #  * the equality constraints feasibility, and
 #  * the inequality constraints feasibility.
 
-time stamp
+# This represents the time and frame at which the message is published
+std_msgs/Header header
 
 uint16 iterations
 float32 total_time
