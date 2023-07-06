@@ -49,5 +49,6 @@
     <!-- This suffers from a bug in catkin, cf.: https://github.com/ros/catkin/issues/1170 -->
     <build_type condition="$ROS_VERSION == 1">catkin</build_type>
     <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
+    <rosbag_migration_rule rule_file="solver_statistics_stamp_rule.bmr"/>
   </export>
 </package>
