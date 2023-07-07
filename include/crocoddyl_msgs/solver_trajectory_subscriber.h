@@ -49,7 +49,7 @@ class SolverTrajectoryRosSubscriber {
         last_msg_time_(0.) {
     spinner_.add_node(node_);
     thread_ = std::thread([this]() { this->spin(); });
-    thread_.join();
+    thread_.detach();
 #else
   SolverTrajectoryRosSubscriber(const std::string &topic = "/crocoddyl/solver_trajectory")
       : spinner_(2), has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {

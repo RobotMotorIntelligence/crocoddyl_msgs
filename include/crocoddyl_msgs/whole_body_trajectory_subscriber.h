@@ -53,7 +53,7 @@ class WholeBodyTrajectoryRosSubscriber {
         a_null_(model.nv) {
     spinner_.add_node(node_);
     thread_ = std::thread([this]() { this->spin(); });
-    thread_.join();
+    thread_.detach();
 #else
   WholeBodyTrajectoryRosSubscriber(pinocchio::Model &model,
                                    const std::string &topic = "/crocoddyl/whole_body_trajectory",
