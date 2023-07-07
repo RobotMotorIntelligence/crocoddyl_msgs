@@ -58,7 +58,7 @@ class SolverTrajectoryRosSubscriber {
                                          ros::TransportHints().tcpNoDelay());
     spinner_.start();
 #endif
-    std::cout << "Ready to subscribe to solver trajectory" << std::endl;
+    std::cout << "Subscribe to SolverTrajectory messages on " << topic << std::endl;
   }
   ~SolverTrajectoryRosSubscriber() = default;
 

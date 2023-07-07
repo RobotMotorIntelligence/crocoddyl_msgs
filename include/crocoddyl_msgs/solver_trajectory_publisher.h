@@ -44,7 +44,7 @@ class SolverTrajectoryRosPublisher {
     pub_.init(n, topic, 1);
 #endif
     pub_.msg_.header.frame_id = frame;
-    std::cout << "Ready to send solver trajectory" << std::endl;
+    std::cout << "Publish SolverTrajectory messages on " << topic << "(frame: " << frame << ")" << std::endl;
   }
   ~SolverTrajectoryRosPublisher() = default;
 

@@ -36,7 +36,7 @@ class SolverStatisticsRosPublisher {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
 #endif
-    std::cout << "Ready to send solver statistics" << std::endl;
+    std::cout << "Publish SolverStatistics messages on " << topic << std::endl;
   }
   ~SolverStatisticsRosPublisher() = default;
 

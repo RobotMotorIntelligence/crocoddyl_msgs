@@ -76,7 +76,7 @@ class WholeBodyTrajectoryRosSubscriber {
     const std::size_t nv_root = model_.joints[root_joint_id].idx_q() == 0 ? model_.joints[root_joint_id].nv() : 0;
     nx_ = model_.nq + model_.nv;
     nu_ = model_.nv - nv_root;
-    std::cout << "Ready to receive whole-body trajectory" << std::endl;
+    std::cout << "Subscribe to WholeBodyTrajectory messages on " << topic << std::endl;
   }
   ~WholeBodyTrajectoryRosSubscriber() = default;
 

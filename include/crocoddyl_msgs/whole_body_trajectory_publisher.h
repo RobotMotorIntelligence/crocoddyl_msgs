@@ -51,7 +51,7 @@ class WholeBodyTrajectoryRosPublisher {
 #endif
     pub_.msg_.header.frame_id = frame;
     a_null_.setZero();
-    std::cout << "Ready to send whole-body trajectory" << std::endl;
+    std::cout << "Publish WholeBodyTrajectory messages on " << topic << "(frame: " << frame << ")" << std::endl;
   }
   ~WholeBodyTrajectoryRosPublisher() = default;
 

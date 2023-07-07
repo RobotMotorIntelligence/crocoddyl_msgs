@@ -54,7 +54,7 @@ class SolverStatisticsRosSubscriber {
                                          ros::TransportHints().tcpNoDelay());
     spinner_.start();
 #endif
-    std::cout << "Ready to subscribe to solver statistics" << std::endl;
+    std::cout << "Subscribe to SolverStatistics messages on " << topic << std::endl;
   }
   ~SolverStatisticsRosSubscriber() = default;
 

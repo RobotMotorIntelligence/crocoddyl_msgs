@@ -82,7 +82,7 @@ class WholeBodyStateRosSubscriber {
     v_.setZero();
     a_.setZero();
     tau_ = Eigen::VectorXd::Zero(njoints);
-    std::cout << "Ready to receive whole-body states" << std::endl;
+    std::cout << "Subscribe to WholeBodyState messages on " << topic << std::endl;
   }
   ~WholeBodyStateRosSubscriber() = default;
 
