@@ -69,7 +69,7 @@ if($ENV{ROS_VERSION} EQUAL 2) # ROS 2
     set_target_properties(${PYBIND11_MODULE} PROPERTIES LIBRARY_OUTPUT_DIRECTORY
                                                         lib/${PROJECT_NAME})
     install(TARGETS ${PYBIND11_MODULE}
-            LIBRARY DESTINATION ${PYTHON_INSTALL_DIR}/${PROJECT_NAME})
+            LIBRARY DESTINATION ${PYTHON_INSTALL_DIR})
   endforeach(PYBIND11_MODULE ${${PROJECT_NAME}_PYBIND11_MODULE})
   # Install the include files
   install(DIRECTORY include/${PROJECT_NAME}/
