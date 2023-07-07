@@ -47,7 +47,7 @@ class WholeBodyStateRosPublisher {
     pub_.init(n, topic, 1);
 #endif
     pub_.msg_.header.frame_id = frame;
-    std::cout << "Publish WholeBodyState messages on " << topic << "(frame: " << frame << ")" << std::endl;
+    std::cout << "Publish WholeBodyState messages on " << topic << " (frame: " << frame << ")" << std::endl;
   }
   ~WholeBodyStateRosPublisher() = default;
 
