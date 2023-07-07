@@ -10,24 +10,33 @@
 #define CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_
 
 #include <realtime_tools/realtime_publisher.h>
-#include <ros/node_handle.h>
 
+#ifdef ROS2
+#include <rclcpp/rclcpp.hpp>
+#include "crocoddyl_msgs/msg/solver_statistics.hpp"
+#else
 #include "crocoddyl_msgs/SolverStatistics.h"
+#endif
 
 namespace crocoddyl_msgs {
 
 class SolverStatisticsRosPublisher {
-public:
+ public:
   /**
    * @brief Initialize the solver statistic publisher
    *
    * @param[in] topic  Topic name
    */
-  SolverStatisticsRosPublisher(
-      const std::string &topic = "/crocoddyl/solver_statistics") {
+#ifdef ROS2
+  SolverStatisticsRosPublisher(const std::string &topic = "/crocoddyl/solver_statistics")
+      : node_("solver_statistics_publisher"),
+        pub_(node_.create_publisher<crocoddyl_msgs::msg::SolverStatistics>(topic, 1)) {
+#else
+  SolverStatisticsRosPublisher(const std::string &topic = "/crocoddyl/solver_statistics") {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
-    std::cout << "Ready to send solver statistics" << std::endl;
+#endif
+    std::cout << "Publish SolverStatistics messages on " << topic << std::endl;
   }
   ~SolverStatisticsRosPublisher() = default;
 
@@ -44,13 +53,15 @@ public:
    * @param equafeas[in]        Equality constraints feasibility
    * @param ineqfeas[in]        Inequality constraints feasibility
    */
-  void publish(const std::size_t iterations, const double totaltime,
-               const double solvetime, const double cost,
-               const double regularization, const double steplength,
-               const double dynfeas, const double equafeas,
+  void publish(const std::size_t iterations, const double totaltime, const double solvetime, const double cost,
+               const double regularization, const double steplength, const double dynfeas, const double equafeas,
                const double ineqfeas) {
     if (pub_.trylock()) {
-      pub_.msg_.stamp = ros::Time::now();
+#ifdef ROS2
+      pub_.msg_.header.stamp = node_.now();
+#else
+      pub_.msg_.header.stamp = ros::Time::now();
+#endif
       pub_.msg_.iterations = iterations;
       pub_.msg_.total_time = totaltime;
       pub_.msg_.solve_time = solvetime;
@@ -64,10 +75,15 @@ public:
     }
   }
 
-private:
+ private:
+#ifdef ROS2
+  rclcpp::Node node_;
+  realtime_tools::RealtimePublisher<crocoddyl_msgs::msg::SolverStatistics> pub_;
+#else
   realtime_tools::RealtimePublisher<crocoddyl_msgs::SolverStatistics> pub_;
+#endif
 };
 
-} // namespace crocoddyl_msgs
+}  // namespace crocoddyl_msgs
 
-#endif // CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_
+#endif  // CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_

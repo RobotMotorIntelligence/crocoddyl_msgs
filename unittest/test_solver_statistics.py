@@ -1,16 +1,25 @@
 #!/usr/bin/env python
+import os
 import random
 import time
 import unittest
 
-import rospy
-import rosunit
+ROS_VERSION = int(os.environ["ROS_VERSION"])
+if ROS_VERSION == 2:
+    import rclpy
+else:
+    import rospy
+    import rosunit
+
 from crocoddyl_ros import SolverStatisticsRosPublisher, SolverStatisticsRosSubscriber
 
 
 class TestSolverStatistics(unittest.TestCase):
     def test_bindings(self):
-        rospy.init_node("crocoddyl_ros", anonymous=True)
+        if ROS_VERSION == 2:
+            rclpy.init()
+        else:
+            rospy.init_node("crocoddyl_ros", anonymous=True)
         sub = SolverStatisticsRosSubscriber()
         pub = SolverStatisticsRosPublisher()
         time.sleep(1)
@@ -50,6 +59,7 @@ class TestSolverStatistics(unittest.TestCase):
             _eq_feas,
             _ineq_feas,
         ) = sub.get_solver_statistics()
+        print(iterations, _iterations)
         self.assertEqual(iterations, _iterations, "Wrong number of iterations")
         self.assertAlmostEqual(total_time, _total_time, places=5)
         self.assertAlmostEqual(solve_time, _solve_time, places=5)
@@ -62,4 +72,7 @@ class TestSolverStatistics(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    rosunit.unitrun("crocoddyl_msgs", "solver_statistics", TestSolverStatistics)
+    if ROS_VERSION == 2:
+        unittest.main()
+    else:
+        rosunit.unitrun("crocoddyl_msgs", "solver_statistics", TestSolverStatistics)

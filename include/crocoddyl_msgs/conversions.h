@@ -27,10 +27,21 @@
 #define JOINT_MODEL_COLLECTION ::pinocchio::JointCollectionDefaultTpl
 #include <pinocchio/bindings/python/pybind11-all.hpp>
 
+#ifdef ROS2
+#include "crocoddyl_msgs/msg/time_interval.hpp"
+#include "crocoddyl_msgs/msg/control.hpp"
+#include "crocoddyl_msgs/msg/feedback_gain.hpp"
+#include "crocoddyl_msgs/msg/state.hpp"
+#include <whole_body_state_msgs/msg/whole_body_state.hpp>
+#include <whole_body_state_msgs/msg/whole_body_trajectory.hpp>
+#else
+#include "crocoddyl_msgs/TimeInterval.h"
 #include "crocoddyl_msgs/Control.h"
 #include "crocoddyl_msgs/FeedbackGain.h"
 #include "crocoddyl_msgs/State.h"
 #include <whole_body_state_msgs/WholeBodyState.h>
+#include <whole_body_state_msgs/WholeBodyTrajectory.h>
+#endif
 
 namespace crocoddyl_msgs {
 
@@ -42,6 +53,24 @@ enum ContactType { LOCOMOTION = 0, MANIPULATION };
 
 enum ContactStatus { UNKNOWN = 0, SEPARATION, STICKING, SLIPPING };
 
+#ifdef ROS2
+typedef crocoddyl_msgs::msg::TimeInterval TimeInterval;
+typedef crocoddyl_msgs::msg::State State;
+typedef crocoddyl_msgs::msg::Control Control;
+typedef crocoddyl_msgs::msg::FeedbackGain FeedbackGain;
+typedef whole_body_state_msgs::msg::WholeBodyState WholeBodyState;
+typedef whole_body_state_msgs::msg::WholeBodyTrajectory WholeBodyTrajectory;
+typedef whole_body_state_msgs::msg::ContactState ContactState;
+#else
+typedef crocoddyl_msgs::TimeInterval TimeInterval;
+typedef crocoddyl_msgs::State State;
+typedef crocoddyl_msgs::Control Control;
+typedef crocoddyl_msgs::FeedbackGain FeedbackGain;
+typedef whole_body_state_msgs::WholeBodyState WholeBodyState;
+typedef whole_body_state_msgs::WholeBodyTrajectory WholeBodyTrajectory;
+typedef whole_body_state_msgs::ContactState ContactState;
+#endif
+
 /**
  * @brief Conversion of Eigen to message for a given
  * crocoddyl_msgs::FeedbackGain message reference
@@ -49,14 +78,13 @@ enum ContactStatus { UNKNOWN = 0, SEPARATION, STICKING, SLIPPING };
  * @param[out] msg  ROS message that contains the feedback gain
  * @param[in] K     Feedback gain (size nu * nx)
  */
-static inline void toMsg(crocoddyl_msgs::FeedbackGain &msg,
-                         const Eigen::Ref<const Eigen::MatrixXd> &K) {
+static inline void toMsg(FeedbackGain &msg, const Eigen::Ref<const Eigen::MatrixXd> &K) {
   msg.nu = static_cast<uint32_t>(K.rows());
   msg.nx = static_cast<uint32_t>(K.cols());
   msg.data.resize(msg.nx * msg.nu);
   for (uint32_t i = 0; i < msg.nu; ++i) {
     for (uint32_t j = 0; j < msg.nx; ++j) {
-      msg.data[i * msg.nx + j] = K(i, j); // store in row-major order
+      msg.data[i * msg.nx + j] = K(i, j);  // store in row-major order
     }
   }
 }
@@ -69,8 +97,7 @@ static inline void toMsg(crocoddyl_msgs::FeedbackGain &msg,
  * @param[in] x     State at the beginning of the interval
  * @param[in] dx    State's rate of change during the interval
  */
-static inline void toMsg(crocoddyl_msgs::State &msg,
-                         const Eigen::Ref<const Eigen::VectorXd> &x,
+static inline void toMsg(State &msg, const Eigen::Ref<const Eigen::VectorXd> &x,
                          const Eigen::Ref<const Eigen::VectorXd> &dx) {
   msg.x.resize(x.size());
   msg.dx.resize(dx.size());
@@ -92,10 +119,8 @@ static inline void toMsg(crocoddyl_msgs::State &msg,
  * @param[in] type             Control type
  * @param[in] parametrization  Control parametrization
  */
-static inline void toMsg(crocoddyl_msgs::Control &msg,
-                         const Eigen::Ref<const Eigen::VectorXd> &u,
-                         const Eigen::Ref<const Eigen::MatrixXd> &K,
-                         const ControlType type,
+static inline void toMsg(Control &msg, const Eigen::Ref<const Eigen::VectorXd> &u,
+                         const Eigen::Ref<const Eigen::MatrixXd> &K, const ControlType type,
                          const ControlParametrization parametrization) {
   msg.u.resize(u.size());
   for (int i = 0; i < u.size(); ++i) {
@@ -103,23 +128,23 @@ static inline void toMsg(crocoddyl_msgs::Control &msg,
   }
   toMsg(msg.gain, K);
   switch (type) {
-  case ControlType::EFFORT:
-    msg.input = crocoddyl_msgs::Control::EFFORT;
-    break;
-  case ControlType::ACCELERATION_CONTACTFORCE:
-    msg.input = crocoddyl_msgs::Control::ACCELERATION_CONTACTFORCE;
-    break;
+    case ControlType::EFFORT:
+      msg.input = crocoddyl_msgs::Control::EFFORT;
+      break;
+    case ControlType::ACCELERATION_CONTACTFORCE:
+      msg.input = crocoddyl_msgs::Control::ACCELERATION_CONTACTFORCE;
+      break;
   }
   switch (parametrization) {
-  case ControlParametrization::POLYZERO:
-    msg.parametrization = crocoddyl_msgs::Control::POLYZERO;
-    break;
-  case ControlParametrization::POLYONE:
-    msg.parametrization = crocoddyl_msgs::Control::POLYONE;
-    break;
-  case ControlParametrization::POLYTWO:
-    msg.parametrization = crocoddyl_msgs::Control::POLYTWO;
-    break;
+    case ControlParametrization::POLYZERO:
+      msg.parametrization = crocoddyl_msgs::Control::POLYZERO;
+      break;
+    case ControlParametrization::POLYONE:
+      msg.parametrization = crocoddyl_msgs::Control::POLYONE;
+      break;
+    case ControlParametrization::POLYTWO:
+      msg.parametrization = crocoddyl_msgs::Control::POLYTWO;
+      break;
   }
 }
 
@@ -140,54 +165,48 @@ static inline void toMsg(crocoddyl_msgs::Control &msg,
  * @param s[in]      Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
-static inline void toMsg(
-    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
-    pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
-    whole_body_state_msgs::WholeBodyState &msg, const double t,
-    const Eigen::Ref<const Eigen::VectorXd> &q,
-    const Eigen::Ref<const Eigen::VectorXd> &v,
-    const Eigen::Ref<const Eigen::VectorXd> &a,
-    const Eigen::Ref<const Eigen::VectorXd> &tau,
-    const std::map<std::string, pinocchio::SE3> &p,
-    const std::map<std::string, pinocchio::Motion> &pd,
-    const std::map<std::string,
-                   std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
-    const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+static inline void toMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+                         pinocchio::DataTpl<double, Options, JointCollectionTpl> &data, WholeBodyState &msg,
+                         const double t, const Eigen::Ref<const Eigen::VectorXd> &q,
+                         const Eigen::Ref<const Eigen::VectorXd> &v, const Eigen::Ref<const Eigen::VectorXd> &a,
+                         const Eigen::Ref<const Eigen::VectorXd> &tau, const std::map<std::string, pinocchio::SE3> &p,
+                         const std::map<std::string, pinocchio::Motion> &pd,
+                         const std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
+                         const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
   if (q.size() != model.nq) {
-    throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
-                                " but received " + std::to_string(q.size()));
+    throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) + " but received " +
+                                std::to_string(q.size()));
   }
   if (v.size() != model.nv) {
-    throw std::invalid_argument("Expected v to be " + std::to_string(model.nv) +
-                                " but received " + std::to_string(v.size()));
+    throw std::invalid_argument("Expected v to be " + std::to_string(model.nv) + " but received " +
+                                std::to_string(v.size()));
   }
   if (a.size() != model.nv) {
-    throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
-                                " but received " + std::to_string(a.size()));
+    throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) + " but received " +
+                                std::to_string(a.size()));
   }
-  const std::size_t nv_root =
-      model.joints[1].idx_q() == 0 ? model.joints[1].nv() : 0;
+  const std::size_t nv_root = model.joints[1].idx_q() == 0 ? model.joints[1].nv() : 0;
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints) && tau.size() != 0) {
-    throw std::invalid_argument("Expected tau to be 0 or " +
-                                std::to_string(njoints) + " but received " +
+    throw std::invalid_argument("Expected tau to be 0 or " + std::to_string(njoints) + " but received " +
                                 std::to_string(tau.size()));
   }
   if (p.size() != pd.size()) {
-    throw std::invalid_argument(
-        "Dimension of contact pose and velocity does not match.");
+    throw std::invalid_argument("Dimension of contact pose and velocity does not match.");
   }
   if (p.size() != f.size()) {
-    throw std::invalid_argument(
-        "Dimension of contact pose and force does not match.");
+    throw std::invalid_argument("Dimension of contact pose and force does not match.");
   }
   if (p.size() != s.size()) {
-    throw std::invalid_argument(
-        "Dimension of contact pose and surface does not match.");
+    throw std::invalid_argument("Dimension of contact pose and surface does not match.");
   }
   // Filling the time information
   msg.time = t;
+#ifdef ROS2
+  msg.header.stamp = rclcpp::Time(static_cast<uint64_t>(t * 1e9));
+#else
   msg.header.stamp = ros::Time(t);
+#endif
   // Filling the centroidal state
   pinocchio::centerOfMass(model, data, q, v, a);
   // Center of mass
@@ -199,7 +218,7 @@ static inline void toMsg(
   msg.centroidal.com_velocity.y = data.vcom[0].y();
   msg.centroidal.com_velocity.z = data.vcom[0].z();
   // Base
-  if (nv_root == 6) { // TODO(cmastalli): handle other root joints
+  if (nv_root == 6) {  // TODO(cmastalli): handle other root joints
     msg.centroidal.base_orientation.x = q(3);
     msg.centroidal.base_orientation.y = q(4);
     msg.centroidal.base_orientation.z = q(5);
@@ -208,22 +227,19 @@ static inline void toMsg(
     msg.centroidal.base_angular_velocity.y = v(4);
     msg.centroidal.base_angular_velocity.z = v(5);
   } else if (nv_root != 0) {
-    std::cerr
-        << "Warning: toMsg conversion does not yet support root joints "
-           "different to a floating base. We cannot publish base information."
-        << std::endl;
+    std::cerr << "Warning: toMsg conversion does not yet support root joints "
+                 "different to a floating base. We cannot publish base information."
+              << std::endl;
   }
   // Momenta
-  const pinocchio::Force &momenta =
-      pinocchio::computeCentroidalMomentum(model, data);
+  const pinocchio::Force &momenta = pinocchio::computeCentroidalMomentum(model, data);
   msg.centroidal.momenta.linear.x = momenta.linear().x();
   msg.centroidal.momenta.linear.y = momenta.linear().y();
   msg.centroidal.momenta.linear.z = momenta.linear().z();
   msg.centroidal.momenta.angular.x = momenta.angular().x();
   msg.centroidal.momenta.angular.y = momenta.angular().y();
   msg.centroidal.momenta.angular.z = momenta.angular().z();
-  const pinocchio::Force &momenta_rate =
-      pinocchio::computeCentroidalMomentumTimeVariation(model, data);
+  const pinocchio::Force &momenta_rate = pinocchio::computeCentroidalMomentumTimeVariation(model, data);
   msg.centroidal.momenta_rate.linear.x = momenta_rate.linear().x();
   msg.centroidal.momenta_rate.linear.y = momenta_rate.linear().y();
   msg.centroidal.momenta_rate.linear.z = momenta_rate.linear().z();
@@ -249,19 +265,16 @@ static inline void toMsg(
     if (static_cast<int>(frame_id) > model.nframes) {
       throw std::runtime_error("Frame '" + name + "' not found.");
     }
-    std::map<std::string, pinocchio::Motion>::const_iterator pd_it =
-        pd.find(name);
+    std::map<std::string, pinocchio::Motion>::const_iterator pd_it = pd.find(name);
     if (pd_it == pd.end()) {
       throw std::runtime_error("Frame '" + name + "' not found in pd.");
     }
-    std::map<std::string, std::tuple<pinocchio::Force, ContactType,
-                                     ContactStatus>>::const_iterator f_it =
+    std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>>::const_iterator f_it =
         f.find(name);
     if (f_it == f.end()) {
       throw std::runtime_error("Frame '" + name + "' not found in f.");
     }
-    std::map<std::string, std::pair<Eigen::Vector3d, double>>::const_iterator
-        s_it = s.find(name);
+    std::map<std::string, std::pair<Eigen::Vector3d, double>>::const_iterator s_it = s.find(name);
     if (s_it == s.end()) {
       throw std::runtime_error("Frame '" + name + "' not found in s.");
     }
@@ -293,32 +306,31 @@ static inline void toMsg(
   }
   i = 0;
   for (const auto &f_item : f) {
-    const std::tuple<pinocchio::Force, ContactType, ContactStatus> &force =
-        f_item.second;
+    const std::tuple<pinocchio::Force, ContactType, ContactStatus> &force = f_item.second;
     const pinocchio::Force &wrench = std::get<0>(force);
     const ContactType type = std::get<1>(force);
     switch (type) {
-    case ContactType::LOCOMOTION:
-      msg.contacts[i].type = whole_body_state_msgs::ContactState::LOCOMOTION;
-      break;
-    case ContactType::MANIPULATION:
-      msg.contacts[i].type = whole_body_state_msgs::ContactState::MANIPULATION;
-      break;
+      case ContactType::LOCOMOTION:
+        msg.contacts[i].type = ContactState::LOCOMOTION;
+        break;
+      case ContactType::MANIPULATION:
+        msg.contacts[i].type = ContactState::MANIPULATION;
+        break;
     }
     const ContactStatus status = std::get<2>(force);
     switch (status) {
-    case ContactStatus::UNKNOWN:
-      msg.contacts[i].status = whole_body_state_msgs::ContactState::UNKNOWN;
-      break;
-    case ContactStatus::SEPARATION:
-      msg.contacts[i].status = whole_body_state_msgs::ContactState::INACTIVE;
-      break;
-    case ContactStatus::STICKING:
-      msg.contacts[i].status = whole_body_state_msgs::ContactState::ACTIVE;
-      break;
-    case ContactStatus::SLIPPING:
-      msg.contacts[i].status = whole_body_state_msgs::ContactState::SLIPPING;
-      break;
+      case ContactStatus::UNKNOWN:
+        msg.contacts[i].status = ContactState::UNKNOWN;
+        break;
+      case ContactStatus::SEPARATION:
+        msg.contacts[i].status = ContactState::INACTIVE;
+        break;
+      case ContactStatus::STICKING:
+        msg.contacts[i].status = ContactState::ACTIVE;
+        break;
+      case ContactStatus::SLIPPING:
+        msg.contacts[i].status = ContactState::SLIPPING;
+        break;
     }
     msg.contacts[i].wrench.force.x = wrench.linear().x();
     msg.contacts[i].wrench.force.y = wrench.linear().y();
@@ -347,16 +359,15 @@ static inline void toMsg(
  * @param[in] msg  ROS message that contains the feedback gain
  * @param[out] K   Feedback gain (size nu * nx)
  */
-static inline void fromMsg(const crocoddyl_msgs::FeedbackGain &msg,
-                           Eigen::Ref<Eigen::MatrixXd> K) {
+static inline void fromMsg(const FeedbackGain &msg, Eigen::Ref<Eigen::MatrixXd> K) {
   if (K.rows() != msg.nu || K.cols() != msg.nx) {
-    throw std::invalid_argument("The dimensions of K need to be: (" +
-                                std::to_string(msg.nu) + ", " +
+    throw std::invalid_argument("The dimensions of K need to be: (" + std::to_string(msg.nu) + ", " +
                                 std::to_string(msg.nx) + ").");
   }
   if (msg.data.size() != msg.nu * msg.nx) {
-    throw std::invalid_argument("Message incorrect - size of data does not "
-                                "match given dimensions (nu,nx)");
+    throw std::invalid_argument(
+        "Message incorrect - size of data does not "
+        "match given dimensions (nu,nx)");
   }
 
   for (std::size_t i = 0; i < msg.nu; ++i) {
@@ -373,18 +384,14 @@ static inline void fromMsg(const crocoddyl_msgs::FeedbackGain &msg,
  * @param[out] x   State at the beginning of the interval
  * @param[out] dx  State's rate of change during the interval
  */
-static inline void fromMsg(const crocoddyl_msgs::State &msg,
-                           Eigen::Ref<Eigen::VectorXd> x,
-                           Eigen::Ref<Eigen::VectorXd> dx) {
+static inline void fromMsg(const State &msg, Eigen::Ref<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> dx) {
   if (static_cast<std::size_t>(x.size()) != msg.x.size()) {
-    throw std::invalid_argument("Expected x to be " +
-                                std::to_string(msg.x.size()) +
-                                " but received " + std::to_string(x.size()));
+    throw std::invalid_argument("Expected x to be " + std::to_string(msg.x.size()) + " but received " +
+                                std::to_string(x.size()));
   }
   if (static_cast<std::size_t>(dx.size()) != msg.dx.size()) {
-    throw std::invalid_argument("Expected dx to be " +
-                                std::to_string(msg.dx.size()) +
-                                " but received " + std::to_string(dx.size()));
+    throw std::invalid_argument("Expected dx to be " + std::to_string(msg.dx.size()) + " but received " +
+                                std::to_string(dx.size()));
   }
   for (std::size_t i = 0; i < msg.x.size(); ++i) {
     x(i) = msg.x[i];
@@ -404,14 +411,11 @@ static inline void fromMsg(const crocoddyl_msgs::State &msg,
  * @param[out] type             Control type
  * @param[out] parametrization  Control parametrization
  */
-static inline void fromMsg(const crocoddyl_msgs::Control &msg,
-                           Eigen::Ref<Eigen::VectorXd> u,
-                           Eigen::Ref<Eigen::MatrixXd> K, ControlType &type,
-                           ControlParametrization &parametrization) {
+static inline void fromMsg(const Control &msg, Eigen::Ref<Eigen::VectorXd> u, Eigen::Ref<Eigen::MatrixXd> K,
+                           ControlType &type, ControlParametrization &parametrization) {
   if (static_cast<std::size_t>(u.size()) != msg.u.size()) {
-    throw std::invalid_argument("Expected u to be " +
-                                std::to_string(msg.u.size()) +
-                                " but received " + std::to_string(u.size()));
+    throw std::invalid_argument("Expected u to be " + std::to_string(msg.u.size()) + " but received " +
+                                std::to_string(u.size()));
   }
   for (std::size_t i = 0; i < msg.u.size(); ++i) {
     u(i) = msg.u[i];
@@ -439,42 +443,34 @@ static inline void fromMsg(const crocoddyl_msgs::Control &msg,
  * @param s[out]     Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
-static inline void
-fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
-        pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
-        const whole_body_state_msgs::WholeBodyState &msg, double &t,
-        Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> v,
-        Eigen::Ref<Eigen::VectorXd> a, Eigen::Ref<Eigen::VectorXd> tau,
-        std::map<std::string, pinocchio::SE3> &p,
-        std::map<std::string, pinocchio::Motion> &pd,
-        std::map<std::string,
-                 std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
-        std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+static inline void fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+                           pinocchio::DataTpl<double, Options, JointCollectionTpl> &data, const WholeBodyState &msg,
+                           double &t, Eigen::Ref<Eigen::VectorXd> q, Eigen::Ref<Eigen::VectorXd> v,
+                           Eigen::Ref<Eigen::VectorXd> a, Eigen::Ref<Eigen::VectorXd> tau,
+                           std::map<std::string, pinocchio::SE3> &p, std::map<std::string, pinocchio::Motion> &pd,
+                           std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
+                           std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
   if (q.size() != model.nq) {
-    throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
-                                " but received " + std::to_string(q.size()));
+    throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) + " but received " +
+                                std::to_string(q.size()));
   }
   if (v.size() != model.nv) {
-    throw std::invalid_argument("Expected v to be " + std::to_string(model.nv) +
-                                " but received " + std::to_string(v.size()));
+    throw std::invalid_argument("Expected v to be " + std::to_string(model.nv) + " but received " +
+                                std::to_string(v.size()));
   }
   if (a.size() != model.nv) {
-    throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
-                                " but received " + std::to_string(v.size()));
+    throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) + " but received " +
+                                std::to_string(v.size()));
   }
-  const std::size_t nv_root =
-      model.joints[1].idx_q() == 0 ? model.joints[1].nv() : 0;
+  const std::size_t nv_root = model.joints[1].idx_q() == 0 ? model.joints[1].nv() : 0;
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints)) {
-    throw std::invalid_argument("Expected tau to be " +
-                                std::to_string(njoints) + " but received " +
+    throw std::invalid_argument("Expected tau to be " + std::to_string(njoints) + " but received " +
                                 std::to_string(tau.size()));
   }
   if (msg.joints.size() != static_cast<std::size_t>(njoints)) {
-    throw std::invalid_argument("Message incorrect - msg.joints size is " +
-                                std::to_string(msg.joints.size()) +
-                                " but expected to be " +
-                                std::to_string(njoints));
+    throw std::invalid_argument("Message incorrect - msg.joints size is " + std::to_string(msg.joints.size()) +
+                                " but expected to be " + std::to_string(njoints));
   }
   t = msg.time;
   // Retrieve the generalized position and velocity, and joint efforts
@@ -489,10 +485,9 @@ fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
     v(4) = msg.centroidal.base_angular_velocity.y;
     v(5) = msg.centroidal.base_angular_velocity.z;
   } else if (nv_root != 0) {
-    std::cerr
-        << "Warning: fromMsg conversion does not yet support root joints "
-           "different to a floating base. We cannot publish base information."
-        << std::endl;
+    std::cerr << "Warning: fromMsg conversion does not yet support root joints "
+                 "different to a floating base. We cannot publish base information."
+              << std::endl;
   }
   for (std::size_t j = 0; j < njoints; ++j) {
     auto joint_id = model.getJointId(msg.joints[j].name);
@@ -516,63 +511,54 @@ fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
                                      q(5))
                       .toRotationMatrix()
                       .transpose() *
-                  v.head<3>(); // local frame
+                  v.head<3>();  // local frame
   }
   // Retrieve the contact information
   for (const auto &contact : msg.contacts) {
     // Contact pose
-    p[contact.name] = pinocchio::SE3(
-        Eigen::Quaterniond(
-            contact.pose.orientation.w, contact.pose.orientation.x,
-            contact.pose.orientation.y, contact.pose.orientation.z),
-        Eigen::Vector3d(contact.pose.position.x, contact.pose.position.y,
-                        contact.pose.position.z));
+    p[contact.name] =
+        pinocchio::SE3(Eigen::Quaterniond(contact.pose.orientation.w, contact.pose.orientation.x,
+                                          contact.pose.orientation.y, contact.pose.orientation.z),
+                       Eigen::Vector3d(contact.pose.position.x, contact.pose.position.y, contact.pose.position.z));
     // Contact velocity
     pd[contact.name] = pinocchio::Motion(
-        Eigen::Vector3d(contact.velocity.linear.x, contact.velocity.linear.y,
-                        contact.velocity.linear.z),
-        Eigen::Vector3d(contact.velocity.angular.x, contact.velocity.angular.y,
-                        contact.velocity.angular.z));
+        Eigen::Vector3d(contact.velocity.linear.x, contact.velocity.linear.y, contact.velocity.linear.z),
+        Eigen::Vector3d(contact.velocity.angular.x, contact.velocity.angular.y, contact.velocity.angular.z));
     // Contact wrench
     ContactType type;
     switch (contact.type) {
-    case whole_body_state_msgs::ContactState::LOCOMOTION:
-      type = ContactType::LOCOMOTION;
-      break;
-    case whole_body_state_msgs::ContactState::MANIPULATION:
-      type = ContactType::MANIPULATION;
-      break;
+      case ContactState::LOCOMOTION:
+        type = ContactType::LOCOMOTION;
+        break;
+      case ContactState::MANIPULATION:
+        type = ContactType::MANIPULATION;
+        break;
     }
     ContactStatus status;
     switch (contact.status) {
-    case whole_body_state_msgs::ContactState::UNKNOWN:
-      status = ContactStatus::UNKNOWN;
-      break;
-    case whole_body_state_msgs::ContactState::INACTIVE:
-      status = ContactStatus::SEPARATION;
-      break;
-    case whole_body_state_msgs::ContactState::ACTIVE:
-      status = ContactStatus::STICKING;
-      break;
-    case whole_body_state_msgs::ContactState::SLIPPING:
-      status = ContactStatus::SLIPPING;
-      break;
+      case ContactState::UNKNOWN:
+        status = ContactStatus::UNKNOWN;
+        break;
+      case ContactState::INACTIVE:
+        status = ContactStatus::SEPARATION;
+        break;
+      case ContactState::ACTIVE:
+        status = ContactStatus::STICKING;
+        break;
+      case ContactState::SLIPPING:
+        status = ContactStatus::SLIPPING;
+        break;
     }
     f[contact.name] = {
-        pinocchio::Force(
-            Eigen::Vector3d(contact.wrench.force.x, contact.wrench.force.y,
-                            contact.wrench.force.z),
-            Eigen::Vector3d(contact.wrench.torque.x, contact.wrench.torque.y,
-                            contact.wrench.torque.z)),
+        pinocchio::Force(Eigen::Vector3d(contact.wrench.force.x, contact.wrench.force.y, contact.wrench.force.z),
+                         Eigen::Vector3d(contact.wrench.torque.x, contact.wrench.torque.y, contact.wrench.torque.z)),
         type, status};
     // Surface normal and friction coefficient
-    s[contact.name] = {Eigen::Vector3d(contact.surface_normal.x,
-                                       contact.surface_normal.y,
-                                       contact.surface_normal.z),
+    s[contact.name] = {Eigen::Vector3d(contact.surface_normal.x, contact.surface_normal.y, contact.surface_normal.z),
                        contact.friction_coefficient};
   }
 }
 
-} // namespace crocoddyl_msgs
+}  // namespace crocoddyl_msgs
 
-#endif // CONVERSIONS_H_
+#endif  // CONVERSIONS_H_

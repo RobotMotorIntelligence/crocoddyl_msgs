@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>crocoddyl_msgs</name>
-  <version>0.0.1</version>
+  <version>1.0.0</version>
   <description>
-    Message structures needed to interact with Crocoddyl solvers, inputs and outputs.
+    Message structures needed to interact with Crocoddyl solvers, inputs and outputs. Compatibility with ROS1 and ROS2.
   </description>
 
   <maintainer email="c.mastalli@hw.ac.uk">Carlos Mastalli</maintainer>
@@ -11,34 +11,44 @@
   <author email="wolfgang@robots.ox.ac.uk">Wolfgang Merkt</author>
   <license>BSD 3-Clause</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend condition="$ROS_VERSION == 1">catkin</buildtool_depend>
+  <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake</buildtool_depend>
+  <buildtool_depend condition="$ROS_VERSION == 2">rosidl_default_generators</buildtool_depend>
 
   <!-- build and runtime dependencies -->
-  <depend>roscpp</depend>
+  <depend>ros_environment</depend>
+  <depend condition="$ROS_VERSION == 1">roscpp</depend>
+  <depend condition="$ROS_VERSION == 2">rclcpp</depend>
   <depend>eigen</depend>
   <depend>std_msgs</depend>
   <depend>whole_body_state_msgs</depend>
   <depend>realtime_tools</depend>
-  <depend>pybind11_catkin</depend>
+  <depend condition="$ROS_VERSION == 1">pybind11_catkin</depend>
+  <depend condition="$ROS_VERSION == 2">pybind11_vendor</depend>
   <depend>pinocchio</depend>
 
   <!-- build dependencies -->
-  <build_depend>rospy</build_depend>
-  <build_depend>message_generation</build_depend>
+  <build_depend condition="$ROS_VERSION == 1">rospy</build_depend>
+  <build_depend condition="$ROS_VERSION == 2">rclpy</build_depend>
+  <build_depend condition="$ROS_VERSION == 1">message_generation</build_depend>
 
   <!-- runtime dependencies -->
-  <exec_depend>rospy</exec_depend>
-  <exec_depend>message_runtime</exec_depend>
+  <exec_depend condition="$ROS_VERSION == 1">rospy</exec_depend>
+  <exec_depend condition="$ROS_VERSION == 2">rclpy</exec_depend>
+  <exec_depend condition="$ROS_VERSION == 1">message_runtime</exec_depend>
+  <exec_depend condition="$ROS_VERSION == 2">rosidl_default_runtime</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 2">python-numpy</exec_depend>
   <exec_depend condition="$ROS_PYTHON_VERSION == 3">python3-numpy</exec_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 
-  <test_depend>rostest</test_depend>
+  <!-- test dependencies -->
+  <test_depend condition="$ROS_VERSION == 1">rostest</test_depend>
 
   <export>
     <!-- This suffers from a bug in catkin, cf.: https://github.com/ros/catkin/issues/1170 -->
     <build_type condition="$ROS_VERSION == 1">catkin</build_type>
     <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
+    <rosbag_migration_rule rule_file="solver_statistics_stamp_rule.bmr"/>
   </export>
 </package>

@@ -13,16 +13,19 @@ Furthermore, the Python bindings of publishers and subscribers using roscpp help
 - [std_msgs](http://wiki.ros.org/std_msgs)
 - [whole_body_state_msgs](https://github.com/loco-3d/whole_body_state_msgs)
 - [realtime_tools](http://wiki.ros.org/realtime_tools)
-- [pybind11_catkin](https://github.com/wxmerkt/pybind11_catkin), wrapping [pybind11](https://pybind11.readthedocs.io/en/stable/basics.html) for use in ROS1
+- [pybind11](https://pybind11.readthedocs.io/en/stable/basics.html) (we wrap it in ROS1 via [pybind11_catkin](https://github.com/wxmerkt/pybind11_catkin))
 - [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
 - [pinocchio](https://github.com/stack-of-tasks/pinocchio)
 
-To compile this catkin project you need to do:
+To compile this catkin/colcon project you need to do:
 
+```bash
+    cd your_ros_ws/
+    catkin build # ROS1
+    colcon build # ROS2
 ```
-cd your_ros_ws/
-catkin build #catkin_make
-```
+
+Note that this package supports ROS1 and ROS2.
 
 ## :copyright: Credits
 

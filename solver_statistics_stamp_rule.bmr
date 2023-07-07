@@ -1,0 +1,96 @@
+class update_crocoddyl_msgs_SolverStatistics_85d76e05fe43e97529e2f644592811cd(MessageUpdateRule):
+	old_type = "crocoddyl_msgs/SolverStatistics"
+	old_full_text = """
+# This message provides essential diagnostics information for Crocoddyl solvers.
+
+# This is a message that holds data to diagnostics Crocoddyl solvers.
+#
+# The solver statistics is defined by:
+#  * the solver iterations,
+#  * the total computation time,
+#  * the total solving time,
+#  * the total cost,
+#  * the solver regularization,
+#  * the applied step length,
+#  * the dynamic feasibility,
+#  * the equality constraints feasibility, and
+#  * the inequality constraints feasibility.
+
+time stamp
+
+uint16 iterations
+float32 total_time
+float32 solve_time
+float32 cost
+float32 regularization
+float32 step_length
+float32 dynamic_feasibility
+float32 equality_feasibility
+float32 inequality_feasibility
+"""
+
+	new_type = "crocoddyl_msgs/SolverStatistics"
+	new_full_text = """
+# This message provides essential diagnostics information for Crocoddyl solvers.
+
+# This is a message that holds data to diagnostics Crocoddyl solvers.
+#
+# The solver statistics is defined by:
+#  * the solver iterations,
+#  * the total computation time,
+#  * the total solving time,
+#  * the total cost,
+#  * the solver regularization,
+#  * the applied step length,
+#  * the dynamic feasibility,
+#  * the equality constraints feasibility, and
+#  * the inequality constraints feasibility.
+
+# This represents the time and frame at which the message is published
+std_msgs/Header header
+
+uint16 iterations
+float32 total_time
+float32 solve_time
+float32 cost
+float32 regularization
+float32 step_length
+float32 dynamic_feasibility
+float32 equality_feasibility
+float32 inequality_feasibility
+
+================================================================================
+MSG: std_msgs/Header
+# Standard metadata for higher-level stamped data types.
+# This is generally used to communicate timestamped data
+# in a particular coordinate frame.
+#
+# sequence ID: consecutively increasing ID
+uint32 seq
+#Two-integer timestamp that is expressed as:
+# * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')
+# * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')
+# time-handling sugar is provided by the client library
+time stamp
+#Frame this data is associated with
+string frame_id
+"""
+
+	order = 0
+	migrated_types = []
+
+	valid = False
+
+	def update(self, old_msg, new_msg):
+		#No matching field name in old message
+		new_msg.header = self.get_new_class('std_msgs/Header')()
+		new_msg.iterations = old_msg.iterations
+		new_msg.total_time = old_msg.total_time
+		new_msg.solve_time = old_msg.solve_time
+		new_msg.cost = old_msg.cost
+		new_msg.regularization = old_msg.regularization
+		new_msg.step_length = old_msg.step_length
+		new_msg.dynamic_feasibility = old_msg.dynamic_feasibility
+		new_msg.equality_feasibility = old_msg.equality_feasibility
+		new_msg.inequality_feasibility = old_msg.inequality_feasibility
+		#No field to match field stamp from old message

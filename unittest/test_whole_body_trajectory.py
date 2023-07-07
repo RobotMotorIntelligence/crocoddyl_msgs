@@ -1,12 +1,19 @@
 #!/usr/bin/env python
+import os
 import random
 import time
 import unittest
 
 import numpy as np
 import pinocchio
-import rospy
-import rosunit
+
+ROS_VERSION = int(os.environ["ROS_VERSION"])
+if ROS_VERSION == 2:
+    import rclpy
+else:
+    import rospy
+    import rosunit
+
 from crocoddyl_ros import (
     ContactStatus,
     ContactType,
@@ -17,7 +24,10 @@ from crocoddyl_ros import (
 
 class TestWholeBodyTrajectory(unittest.TestCase):
     def test_bindings(self):
-        rospy.init_node("crocoddyl_ros", anonymous=True)
+        if ROS_VERSION == 2:
+            rclpy.init()
+        else:
+            rospy.init_node("crocoddyl_ros", anonymous=True)
         model = pinocchio.buildSampleModelHumanoid()
         sub = WholeBodyTrajectoryRosSubscriber(model)
         pub = WholeBodyTrajectoryRosPublisher(model)
@@ -129,4 +139,9 @@ class TestWholeBodyTrajectory(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    rosunit.unitrun("crocoddyl_msgs", "whole_body_trajectory", TestWholeBodyTrajectory)
+    if ROS_VERSION == 2:
+        unittest.main()
+    else:
+        rosunit.unitrun(
+            "crocoddyl_msgs", "whole_body_trajectory", TestWholeBodyTrajectory
+        )

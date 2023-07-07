@@ -1,11 +1,18 @@
 #!/usr/bin/env python
+import os
 import random
 import time
 import unittest
 
 import numpy as np
-import rospy
-import rosunit
+
+ROS_VERSION = int(os.environ["ROS_VERSION"])
+if ROS_VERSION == 2:
+    import rclpy
+else:
+    import rospy
+    import rosunit
+
 from crocoddyl_ros import (
     ControlParametrization,
     ControlType,
@@ -16,7 +23,10 @@ from crocoddyl_ros import (
 
 class TestSolverTrajectory(unittest.TestCase):
     def test_bindings(self):
-        rospy.init_node("crocoddyl_ros", anonymous=True)
+        if ROS_VERSION == 2:
+            rclpy.init()
+        else:
+            rospy.init_node("crocoddyl_ros", anonymous=True)
         sub = SolverTrajectoryRosSubscriber()
         pub = SolverTrajectoryRosPublisher()
         time.sleep(1)
@@ -71,4 +81,7 @@ class TestSolverTrajectory(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    rosunit.unitrun("crocoddyl_msgs", "solver_trajectory", TestSolverTrajectory)
+    if ROS_VERSION == 2:
+        unittest.main()
+    else:
+        rosunit.unitrun("crocoddyl_msgs", "solver_trajectory", TestSolverTrajectory)
