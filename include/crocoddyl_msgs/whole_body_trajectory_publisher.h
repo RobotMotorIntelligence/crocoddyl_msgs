@@ -41,6 +41,7 @@ class WholeBodyTrajectoryRosPublisher {
         data_(model),
         odom_frame_(frame),
         a_null_(model.nv) {
+    RCLCPP_INFO_STREAM(node_.get_logger(), "Publishing WholeBodyTrajectory messages on " << topic <<  " (frame: " << frame << ")");
 #else
   WholeBodyTrajectoryRosPublisher(pinocchio::Model &model,
                                   const std::string &topic = "/crocoddyl/whole_body_trajectory",
@@ -48,10 +49,10 @@ class WholeBodyTrajectoryRosPublisher {
       : model_(model), data_(model), odom_frame_(frame), a_null_(model.nv) {
     ros::NodeHandle n;
     pub_.init(n, topic, queue);
+    ROS_INFO_STREAM("Publishing WholeBodyTrajectory messages on " << topic <<  " (frame: " << frame << ")");
 #endif
     pub_.msg_.header.frame_id = frame;
     a_null_.setZero();
-    std::cout << "Publish WholeBodyTrajectory messages on " << topic << " (frame: " << frame << ")" << std::endl;
   }
   ~WholeBodyTrajectoryRosPublisher() = default;
 
