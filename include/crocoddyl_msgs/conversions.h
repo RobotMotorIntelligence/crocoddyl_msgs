@@ -473,22 +473,7 @@ static inline void fromMsg(const pinocchio::ModelTpl<double, Options, JointColle
                                 " but expected to be " + std::to_string(njoints));
   }
   t = msg.time;
-  // Retrieve the generalized position and velocity, and joint efforts
-  q.head<3>().setZero();
-  v.head<3>().setZero();
-  if (nv_root == 6) {
-    q(3) = msg.centroidal.base_orientation.x;
-    q(4) = msg.centroidal.base_orientation.y;
-    q(5) = msg.centroidal.base_orientation.z;
-    q(6) = msg.centroidal.base_orientation.w;
-    v(3) = msg.centroidal.base_angular_velocity.x;
-    v(4) = msg.centroidal.base_angular_velocity.y;
-    v(5) = msg.centroidal.base_angular_velocity.z;
-  } else if (nv_root != 0) {
-    std::cerr << "Warning: fromMsg conversion does not yet support root joints "
-                 "different to a floating base. We cannot publish base information."
-              << std::endl;
-  }
+  // Retrieve the joint state
   for (std::size_t j = 0; j < njoints; ++j) {
     auto joint_id = model.getJointId(msg.joints[j].name);
     auto q_idx = model.idx_qs[joint_id];
@@ -498,7 +483,19 @@ static inline void fromMsg(const pinocchio::ModelTpl<double, Options, JointColle
     a(v_idx) = msg.joints[j].acceleration;
     tau(joint_id - 2) = msg.joints[j].effort;
   }
+
+  // Retrieve the base state
   if (nv_root == 6) {
+    q.head<3>().setZero();
+    v.head<3>().setZero();
+    q(3) = msg.centroidal.base_orientation.x;
+    q(4) = msg.centroidal.base_orientation.y;
+    q(5) = msg.centroidal.base_orientation.z;
+    q(6) = msg.centroidal.base_orientation.w;
+    v(3) = msg.centroidal.base_angular_velocity.x;
+    v(4) = msg.centroidal.base_angular_velocity.y;
+    v(5) = msg.centroidal.base_angular_velocity.z;
+
     pinocchio::normalize(model, q);
     pinocchio::centerOfMass(model, data, q, v, a);
     q(0) = msg.centroidal.com_position.x - data.com[0](0);
@@ -512,7 +509,12 @@ static inline void fromMsg(const pinocchio::ModelTpl<double, Options, JointColle
                       .toRotationMatrix()
                       .transpose() *
                   v.head<3>();  // local frame
+  } else if (nv_root != 0) {
+    std::cerr << "Warning: fromMsg conversion does not yet support root joints "
+                 "different to a floating base. We cannot publish base information."
+              << std::endl;
   }
+
   // Retrieve the contact information
   for (const auto &contact : msg.contacts) {
     // Contact pose
