@@ -56,6 +56,7 @@ class WholeBodyStateRosSubscriber {
     spinner_.add_node(node_);
     thread_ = std::thread([this]() { this->spin(); });
     thread_.detach();
+    RCLCPP_INFO_STREAM(node_->get_logger(), "Subscribing WholeBodyState messages on " << topic);
 #else
   WholeBodyStateRosSubscriber(pinocchio::Model &model, const std::string &topic = "/crocoddyl/whole_body_state",
                               const std::string &frame = "odom")
@@ -74,15 +75,14 @@ class WholeBodyStateRosSubscriber {
     sub_ = n.subscribe<WholeBodyState>(topic, 1, &WholeBodyStateRosSubscriber::callback, this,
                                        ros::TransportHints().tcpNoDelay());
     spinner_.start();
+    ROS_INFO_STREAM("Subscribing WholeBodyState messages on " << topic);
 #endif
-    const std::size_t root_joint_id = model.frames[1].parent;
-    const std::size_t nv_root = model.joints[root_joint_id].idx_q() == 0 ? model.joints[root_joint_id].nv() : 0;
-    const std::size_t njoints = model.nv - nv_root;
+    const std::size_t root_joint_id = model.existJointName("root_joint") ? model.getJointId("root_joint") : 0;
+    const std::size_t njoints = model.nv - model.joints[root_joint_id].nv();
     q_.setZero();
     v_.setZero();
     a_.setZero();
     tau_ = Eigen::VectorXd::Zero(njoints);
-    std::cout << "Subscribe to WholeBodyState messages on " << topic << std::endl;
   }
   ~WholeBodyStateRosSubscriber() = default;
 

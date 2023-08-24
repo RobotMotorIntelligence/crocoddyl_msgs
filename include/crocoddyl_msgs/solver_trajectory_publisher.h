@@ -37,14 +37,15 @@ class SolverTrajectoryRosPublisher {
                                const std::string &frame = "odom")
       : node_("solver_trajectory_publisher"),
         pub_(node_.create_publisher<crocoddyl_msgs::msg::SolverTrajectory>(topic, 1)) {
+    RCLCPP_INFO_STREAM(node_.get_logger(), "Publishing SolverTrajectory messages on " << topic <<  " (frame: " << frame << ")");
 #else
   SolverTrajectoryRosPublisher(const std::string &topic = "/crocoddyl/solver_trajectory",
                                const std::string &frame = "odom") {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
+    ROS_INFO_STREAM("Publishing SolverTrajectory messages on " << topic <<  " (frame: " << frame << ")");
 #endif
     pub_.msg_.header.frame_id = frame;
-    std::cout << "Publish SolverTrajectory messages on " << topic << " (frame: " << frame << ")" << std::endl;
   }
   ~SolverTrajectoryRosPublisher() = default;
 

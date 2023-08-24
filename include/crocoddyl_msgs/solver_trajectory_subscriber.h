@@ -50,6 +50,7 @@ class SolverTrajectoryRosSubscriber {
     spinner_.add_node(node_);
     thread_ = std::thread([this]() { this->spin(); });
     thread_.detach();
+    RCLCPP_INFO_STREAM(node_->get_logger(), "Subscribing SolverTrajectory messages on " << topic);
 #else
   SolverTrajectoryRosSubscriber(const std::string &topic = "/crocoddyl/solver_trajectory")
       : spinner_(2), has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
@@ -57,8 +58,8 @@ class SolverTrajectoryRosSubscriber {
     sub_ = n.subscribe<SolverTrajectory>(topic, 1, &SolverTrajectoryRosSubscriber::callback, this,
                                          ros::TransportHints().tcpNoDelay());
     spinner_.start();
+    ROS_INFO_STREAM("Subscribing SolverTrajectory messages on " << topic);
 #endif
-    std::cout << "Subscribe to SolverTrajectory messages on " << topic << std::endl;
   }
   ~SolverTrajectoryRosSubscriber() = default;
 

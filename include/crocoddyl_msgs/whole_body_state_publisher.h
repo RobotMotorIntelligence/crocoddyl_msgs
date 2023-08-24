@@ -39,15 +39,16 @@ class WholeBodyStateRosPublisher {
         data_(model),
         odom_frame_(frame),
         a_(Eigen::VectorXd::Zero(model.nv)) {
+    RCLCPP_INFO_STREAM(node_.get_logger(), "Publishing WholeBodyState messages on " << topic <<  " (frame: " << frame << ")");
 #else
   WholeBodyStateRosPublisher(pinocchio::Model &model, const std::string &topic = "/crocoddyl/whole_body_state",
                              const std::string &frame = "odom")
       : model_(model), data_(model), odom_frame_(frame), a_(Eigen::VectorXd::Zero(model.nv)) {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
+    ROS_INFO_STREAM("Publishing WholeBodyState messages on " << topic <<  " (frame: " << frame << ")");
 #endif
     pub_.msg_.header.frame_id = frame;
-    std::cout << "Publish WholeBodyState messages on " << topic << " (frame: " << frame << ")" << std::endl;
   }
   ~WholeBodyStateRosPublisher() = default;
 

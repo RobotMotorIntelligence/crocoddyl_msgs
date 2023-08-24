@@ -31,12 +31,13 @@ class SolverStatisticsRosPublisher {
   SolverStatisticsRosPublisher(const std::string &topic = "/crocoddyl/solver_statistics")
       : node_("solver_statistics_publisher"),
         pub_(node_.create_publisher<crocoddyl_msgs::msg::SolverStatistics>(topic, 1)) {
+    RCLCPP_INFO_STREAM(node_.get_logger(), "Publishing SolverStatistics messages on " << topic);
 #else
   SolverStatisticsRosPublisher(const std::string &topic = "/crocoddyl/solver_statistics") {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
+    ROS_INFO_STREAM("Publishing SolverStatistics messages on " << topic);
 #endif
-    std::cout << "Publish SolverStatistics messages on " << topic << std::endl;
   }
   ~SolverStatisticsRosPublisher() = default;
 
