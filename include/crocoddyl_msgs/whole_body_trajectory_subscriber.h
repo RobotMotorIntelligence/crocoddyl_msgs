@@ -74,10 +74,9 @@ class WholeBodyTrajectoryRosSubscriber {
     ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
 #endif
     a_null_.setZero();
-    const std::size_t root_joint_id = model_.frames[1].parent;
-    const std::size_t nv_root = model_.joints[root_joint_id].idx_q() == 0 ? model_.joints[root_joint_id].nv() : 0;
+    const std::size_t root_joint_id = model.existJointName("root_joint") ? model.getJointId("root_joint") : 0;
     nx_ = model_.nq + model_.nv;
-    nu_ = model_.nv - nv_root;
+    nu_ = model.nv - model.joints[root_joint_id].nv();
   }
   ~WholeBodyTrajectoryRosSubscriber() = default;
 
