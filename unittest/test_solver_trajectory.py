@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 ###############################################################################
 # BSD 3-Clause License
 #
@@ -6,7 +8,6 @@
 # All rights reserved.
 ###############################################################################
 
-#!/usr/bin/env python
 import os
 import random
 import time
