@@ -521,7 +521,7 @@ fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
     q(q_idx) = msg.joints[j].position;
     v(v_idx) = msg.joints[j].velocity;
     a(v_idx) = msg.joints[j].acceleration;
-    tau(joint_id - 2) = msg.joints[j].effort;
+    tau(v_idx - nv_root) = msg.joints[j].effort;
   }
 
   // Retrieve the base state
