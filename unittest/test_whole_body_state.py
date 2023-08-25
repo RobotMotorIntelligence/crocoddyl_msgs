@@ -1,3 +1,11 @@
+###############################################################################
+# BSD 3-Clause License
+#
+# Copyright (C) 2023-2023, Heriot-Watt University
+# Copyright note valid unless otherwise stated in individual files.
+# All rights reserved.
+###############################################################################
+
 #!/usr/bin/env python
 import os
 import random
