@@ -151,6 +151,12 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
                     const std::string &>(),
            py::arg("model"), py::arg("topic") = "/crocoddyl/whole_body_state",
            py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &, const std::vector<std::string> &,
+                    const Eigen::VectorXd &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"), py::arg("locked_joints"), py::arg("qref"),
+           py::arg("topic") = "/crocoddyl/whole_body_state",
+           py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("publish", &WholeBodyStateRosPublisher::publish,
            "Publish a whole-body state ROS message.\n\n"
@@ -171,6 +177,12 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
       .def(py::init<pinocchio::Model &, const std::string &,
                     const std::string &>(),
            py::arg("model"), py::arg("topic") = "/crocoddyl/whole_body_state",
+           py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &, const std::vector<std::string> &,
+                    const Eigen::VectorXd &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"), py::arg("locked_joints"), py::arg("qref"),
+           py::arg("topic") = "/crocoddyl/whole_body_state",
            py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("get_state", &WholeBodyStateRosSubscriber::get_state,
@@ -222,7 +234,8 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
       .def("has_new_msg", &WholeBodyTrajectoryRosSubscriber::has_new_msg);
 
   m.def(
-      "fromReduced", &fromReduced_return<0, pinocchio::JointCollectionDefaultTpl>,
+      "fromReduced",
+      &fromReduced_return<0, pinocchio::JointCollectionDefaultTpl>,
       "Conversion from reduced position, velocity and effort to a full one.\n\n"
       ":param model: Pinocchio model\n"
       ":param reduced_model: Reduced Pinocchio model\n"

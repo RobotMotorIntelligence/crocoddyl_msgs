@@ -33,7 +33,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   /**
-   * @brief Initialize the whole-body state subscriber
+   * @brief Initialize the whole-body state subscriber.
    *
    * @param[in] model  Pinocchio model
    * @param[in] topic  Topic name
@@ -49,7 +49,8 @@ public:
             topic, 1,
             std::bind(&WholeBodyStateRosSubscriber::callback, this,
                       std::placeholders::_1))),
-        t_(0.), q_(model.nq), v_(model.nv), a_(model.nv), has_new_msg_(false),
+        t_(0.), q_(model.nq), v_(model.nv), a_(model.nv),
+        is_reduced_model_(false), has_new_msg_(false),
         is_processing_msg_(false), last_msg_time_(0.), odom_frame_(frame),
         model_(model), data_(model) {
     spinner_.add_node(node_);
@@ -63,8 +64,9 @@ public:
       const std::string &topic = "/crocoddyl/whole_body_state",
       const std::string &frame = "odom")
       : spinner_(2), t_(0.), q_(model.nq), v_(model.nv), a_(model.nv),
-        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
-        odom_frame_(frame), model_(model), data_(model) {
+        is_reduced_model_(false), has_new_msg_(false),
+        is_processing_msg_(false), last_msg_time_(0.), odom_frame_(frame),
+        model_(model), data_(model) {
     ros::NodeHandle n;
     sub_ = n.subscribe<WholeBodyState>(
         topic, 1, &WholeBodyStateRosSubscriber::callback, this,
@@ -79,13 +81,97 @@ public:
     a_.setZero();
     tau_ = Eigen::VectorXd::Zero(njoints);
   }
+
+  /**
+   * @brief Initialize the whole-body state subscriber for rigid-body system
+   * with locked joints.
+   *
+   * @param[in] model          Pinocchio model
+   * @param[in] locked_joints  List of joints to be locked
+   * @param[in] qref           Reference configuration
+   * @param[in] topic          Topic name
+   * @param[in] frame          Odometry frame
+   */
+#ifdef ROS2
+  WholeBodyStateRosSubscriber(
+      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      const Eigen::Ref<const Eigen::VectorXd> &qref,
+      const std::string &topic = "/crocoddyl/whole_body_state",
+      const std::string &frame = "odom")
+      : node_(rclcpp::Node::make_shared("whole_body_state_subscriber")),
+        sub_(node_->create_subscription<WholeBodyState>(
+            topic, 1,
+            std::bind(&WholeBodyStateRosSubscriber::callback, this,
+                      std::placeholders::_1))),
+        t_(0.), q_(model.nv - locked_joints.size()),
+        v_(model.nv - locked_joints.size()),
+        a_(model.nv - locked_joints.size()), qref_(qref),
+        is_reduced_model_(true), has_new_msg_(false), is_processing_msg_(false),
+        last_msg_time_(0.), odom_frame_(frame), model_(model) {
+    spinner_.add_node(node_);
+    thread_ = std::thread([this]() { this->spin(); });
+    thread_.detach();
+    RCLCPP_INFO_STREAM(node_->get_logger(),
+                       "Subscribing WholeBodyState messages on " << topic);
+    if (qref_.size() != model_.nq) {
+      RCLCPP_ERROR_STREAM(node_.get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
+    }
+#else
+  WholeBodyStateRosSubscriber(
+      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      const Eigen::Ref<const Eigen::VectorXd> &qref,
+      const std::string &topic = "/crocoddyl/whole_body_state",
+      const std::string &frame = "odom")
+      : spinner_(2), t_(0.), q_(model.nv - locked_joints.size()),
+        v_(model.nv - locked_joints.size()), a_(model.nv), qref_(qref),
+        is_reduced_model_(true), has_new_msg_(false), is_processing_msg_(false),
+        last_msg_time_(0.), odom_frame_(frame), model_(model) {
+    ros::NodeHandle n;
+    sub_ = n.subscribe<WholeBodyState>(
+        topic, 1, &WholeBodyStateRosSubscriber::callback, this,
+        ros::TransportHints().tcpNoDelay());
+    spinner_.start();
+    ROS_INFO_STREAM("Subscribing WholeBodyState messages on " << topic);
+    if (qref_.size() != model_.nq) {
+      ROS_ERROR_STREAM(
+          "Invalid argument: qref has wrong dimension (it should be "
+          << std::to_string(model_.nq) << ")");
+    }
+#endif
+    // Build reduce model
+    for (std::string name : locked_joints) {
+      if (model_.existJointName(name)) {
+        joint_ids_.push_back(model_.getJointId(name));
+      } else {
+#ifdef ROS2
+        RCLCPP_ERROR_STREAM(node_.get_logger(),
+                            "Doesn't exist " << name << " joint");
+#else
+        ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
+#endif
+      }
+    }
+    pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
+    data_ = pinocchio::Data(reduced_model_);
+
+    const std::size_t root_joint_id = get_root_joint_id(model);
+    const std::size_t nv_root = model.joints[root_joint_id].nv();
+    q_.setZero();
+    v_.setZero();
+    a_.setZero();
+    tau_ = Eigen::VectorXd::Zero(reduced_model_.nv - nv_root);
+    qfull_ = Eigen::VectorXd::Zero(model_.nq);
+    vfull_ = Eigen::VectorXd::Zero(model_.nv);
+    ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
+  }
   ~WholeBodyStateRosSubscriber() = default;
 
   /**
-   * @brief Get the latest whole-body state
+   * @brief Get the latest whole-body state for the rigid-body system with
+   * locked joints.
    *
    * @todo: Use Pinocchio objects once there is a pybind11 support of std
-   * containers
+   * containers.
    *
    * @return  A tuple with the time at the beginning of the interval,
    * generalized position, generalized velocity, joint efforts, contact
@@ -102,8 +188,14 @@ public:
     // start processing the message
     is_processing_msg_ = true;
     std::lock_guard<std::mutex> guard(mutex_);
-    crocoddyl_msgs::fromMsg(model_, data_, msg_, t_, q_, v_, a_, tau_, p_, pd_,
-                            f_, s_);
+    if (is_reduced_model_) {
+      crocoddyl_msgs::fromMsg(model_, data_, msg_, t_, qfull_, vfull_, a_,
+                              ufull_, p_, pd_, f_, s_);
+      toReduced(model_, reduced_model_, q_, v_, tau_, qfull_, vfull_, ufull_);
+    } else {
+      crocoddyl_msgs::fromMsg(model_, data_, msg_, t_, q_, v_, a_, tau_, p_,
+                              pd_, f_, s_);
+    }
     // create maps that do not depend on Pinocchio objects
     for (auto it = p_.cbegin(); it != p_.cend(); ++it) {
       p_tmp_[it->first] =
@@ -139,13 +231,20 @@ private:
   ros::AsyncSpinner spinner_;
   ros::Subscriber sub_; //!< ROS subscriber
 #endif
-  std::mutex mutex_;    ///< Mutex to prevent race condition on callback
-  WholeBodyState msg_;  //!< ROS message
-  double t_;            //!< Time at the beginning of the interval
-  Eigen::VectorXd q_;   ///< Configuration vector (size nq)
-  Eigen::VectorXd v_;   ///< Tangent vector (size nv)
-  Eigen::VectorXd a_;   ///< System acceleration vector (size nv)
-  Eigen::VectorXd tau_; ///< Torque vector (size njoints)
+  std::mutex mutex_;      ///< Mutex to prevent race condition on callback
+  WholeBodyState msg_;    //!< ROS message
+  double t_;              //!< Time at the beginning of the interval
+  Eigen::VectorXd q_;     ///!< Configuration vector (size nq)
+  Eigen::VectorXd v_;     ///!< Tangent vector (size nv)
+  Eigen::VectorXd a_;     ///!< System acceleration vector (size nv)
+  Eigen::VectorXd tau_;   ///!< Torque vector (size njoints)
+  Eigen::VectorXd qfull_; ///!< Full configuration vector (size nq)
+  Eigen::VectorXd vfull_; ///!< Full tangent vector (size nv)
+  Eigen::VectorXd ufull_; ///!< Full torque vector (size njoints)
+  Eigen::VectorXd
+      qref_; ///!< Reference configuration used in the reduced model (size nq)
+  std::vector<pinocchio::JointIndex> joint_ids_; ///!< List of locked joint Ids
+  bool is_reduced_model_; ///< True if we have reduced the model
   std::map<std::string, pinocchio::SE3> p_;     //!< Contact position
   std::map<std::string, pinocchio::Motion> pd_; //!< Contact velocity
   std::map<std::string,
@@ -158,6 +257,7 @@ private:
   double last_msg_time_;
   std::string odom_frame_;
   pinocchio::Model model_;
+  pinocchio::Model reduced_model_;
   pinocchio::Data data_;
   // TODO(cmastalli): Temporal variables as it is needed std container support
   // in Pinocchio
