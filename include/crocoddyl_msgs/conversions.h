@@ -72,6 +72,21 @@ typedef whole_body_state_msgs::ContactState ContactState;
 #endif
 
 /**
+ * @brief Return the root joint id
+ *
+ * @param return  Root joint Id
+ */
+template <int Options, template <typename, int> class JointCollectionTpl>
+static inline std::size_t get_root_joint_id(
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model) {
+  return model.existJointName("root_joint")
+             ? model.getJointId("root_joint")
+             : (model.existJointName("freeflyer_joint")
+                    ? model.getJointId("freeflyer_joint")
+                    : 0);
+}
+
+/**
  * @brief Conversion of Eigen to message for a given
  * crocoddyl_msgs::FeedbackGain message reference
  *
@@ -193,11 +208,8 @@ static inline void toMsg(
     throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
                                 " but received " + std::to_string(a.size()));
   }
-  const std::size_t nv_root = model
-                                  .joints[(model.existJointName("root_joint")
-                                               ? model.getJointId("root_joint")
-                                               : 0)]
-                                  .nv();
+  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t nv_root = model.joints[root_joint_id].nv();
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints) && tau.size() != 0) {
     throw std::invalid_argument("Expected tau to be 0 or " +
@@ -495,11 +507,8 @@ fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
     throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
                                 " but received " + std::to_string(v.size()));
   }
-  const std::size_t nv_root = model
-                                  .joints[(model.existJointName("root_joint")
-                                               ? model.getJointId("root_joint")
-                                               : 0)]
-                                  .nv();
+  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t nv_root = model.joints[root_joint_id].nv();
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints)) {
     throw std::invalid_argument("Expected tau to be " +

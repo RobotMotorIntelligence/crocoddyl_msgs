@@ -72,8 +72,7 @@ public:
     ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
 #endif
     a_null_.setZero();
-    const std::size_t root_joint_id =
-        model.existJointName("root_joint") ? model.getJointId("root_joint") : 0;
+    const std::size_t root_joint_id = get_root_joint_id(model);
     nx_ = model_.nq + model_.nv;
     nu_ = model.nv - model.joints[root_joint_id].nv();
   }

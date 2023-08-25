@@ -72,8 +72,7 @@ public:
     spinner_.start();
     ROS_INFO_STREAM("Subscribing WholeBodyState messages on " << topic);
 #endif
-    const std::size_t root_joint_id =
-        model.existJointName("root_joint") ? model.getJointId("root_joint") : 0;
+    const std::size_t root_joint_id = get_root_joint_id(model);
     const std::size_t njoints = model.nv - model.joints[root_joint_id].nv();
     q_.setZero();
     v_.setZero();
