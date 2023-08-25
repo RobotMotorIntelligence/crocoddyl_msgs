@@ -220,4 +220,28 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "friction\n"
            "coefficients.")
       .def("has_new_msg", &WholeBodyTrajectoryRosSubscriber::has_new_msg);
+
+  m.def(
+      "fromReduced", &fromReduced_return<0, pinocchio::JointCollectionDefaultTpl>,
+      "Conversion from reduced position, velocity and effort to a full one.\n\n"
+      ":param model: Pinocchio model\n"
+      ":param reduced_model: Reduced Pinocchio model\n"
+      ":param q: Reduced configuration vector (dimension: reduced_model.nq)\n"
+      ":param v: Reduced generalized velocity (dimension: reduced_model.nv)\n"
+      ":param tau: Reduced joint effort (dimension: reduced_model.nv - "
+      "nv_root)\n"
+      ":param qref: Reference configuration used in the reduced model\n"
+      ":param locked_joint_ids: Ids of the locked joints\n"
+      ":return q_full, v_full, tau_full");
+
+  m.def(
+      "toReduced", &toReduced_return<0, pinocchio::JointCollectionDefaultTpl>,
+      "Conversion to reduced position, velocity and effort from a full one.\n\n"
+      ":param model: Pinocchio model\n"
+      ":param reduced_model: Reduced Pinocchio model\n"
+      ":param q: Configuration vector (dimension: model.nq)\n"
+      ":param v: Generalized velocity (dimension: model.nv)\n"
+      ":param tau: Joint effort (dimension: model.nv - nv_root)\n"
+      ":return q_reduced, v_reduced, tau_reduced",
+      py::return_value_policy::take_ownership);
 }

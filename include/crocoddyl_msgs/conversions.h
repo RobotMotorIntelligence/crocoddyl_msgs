@@ -15,6 +15,7 @@
 #include <pinocchio/algorithm/centroidal.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/joint-configuration.hpp>
+#include <pinocchio/algorithm/model.hpp>
 #include <pinocchio/container/aligned-vector.hpp>
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/multibody/model.hpp>
@@ -618,6 +619,200 @@ fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
                                        contact.surface_normal.z),
                        contact.friction_coefficient};
   }
+}
+
+/**
+ * @brief Conversion from reduced position, velocity and effort to a full one
+ *
+ * @param model[in]  Pinocchio model
+ * @param reduced_model[in]  Reduced Pinocchio model
+ * @param q_out[out]  Configuration vector (dimension: model.nq)
+ * @param v_out[out]  Generalized velocity (dimension: model.nv)
+ * @param tau_out[out]  Joint effort (dimension: model.nv - nv_root)
+ * @param q[in]  Reduced configuration vector (dimension: reduced_model.nq)
+ * @param v[in]  Reduced generalized velocity (dimension: reduced_model.nv)
+ * @param tau[in]  Reduced joint effort (dimension: reduced_model.nv - nv_root)
+ * @param qref[in]  Reference configuration used in the reduced model
+ * @param locked_joint_ids[in]  Ids of the locked joints
+ */
+template <int Options, template <typename, int> class JointCollectionTpl>
+static inline void fromReduced(
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl>
+        &reduced_model,
+    Eigen::Ref<Eigen::VectorXd> q_out, Eigen::Ref<Eigen::VectorXd> v_out,
+    Eigen::Ref<Eigen::VectorXd> tau_out,
+    const Eigen::Ref<const Eigen::VectorXd> &q_in,
+    const Eigen::Ref<const Eigen::VectorXd> &v_in,
+    const Eigen::Ref<const Eigen::VectorXd> &tau_in,
+    const Eigen::Ref<const Eigen::VectorXd> &qref,
+    const std::vector<pinocchio::JointIndex> &locked_joint_ids) {
+  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t nq_root = model.joints[root_joint_id].nq();
+  const std::size_t nv_root = model.joints[root_joint_id].nv();
+  if (q_out.size() != model.nq) {
+    throw std::invalid_argument("Expected q_out to be " +
+                                std::to_string(model.nq) + " but received " +
+                                std::to_string(q_out.size()));
+  }
+  if (q_in.size() != reduced_model.nq) {
+    throw std::invalid_argument("Expected q_in to be " +
+                                std::to_string(reduced_model.nq) +
+                                " but received " + std::to_string(q_in.size()));
+  }
+  if (v_out.size() != model.nv) {
+    throw std::invalid_argument("Expected v_out to be " +
+                                std::to_string(model.nv) + " but received " +
+                                std::to_string(v_out.size()));
+  }
+  if (v_in.size() != reduced_model.nv) {
+    throw std::invalid_argument("Expected v_in to be " +
+                                std::to_string(reduced_model.nv) +
+                                " but received " + std::to_string(v_in.size()));
+  }
+  if (static_cast<std::size_t>(tau_out.size()) != model.nv - nv_root) {
+    throw std::invalid_argument(
+        "Expected tau_out to be " + std::to_string(model.nv - nv_root) +
+        " but received " + std::to_string(tau_out.size()));
+  }
+  if (static_cast<std::size_t>(tau_in.size()) != reduced_model.nv - nv_root) {
+    throw std::invalid_argument(
+        "Expected tau_in to be " + std::to_string(reduced_model.nv - nv_root) +
+        " but received " + std::to_string(tau_in.size()));
+  }
+
+  typedef pinocchio::ModelTpl<double, Options, JointCollectionTpl> Model;
+  typedef typename Model::JointModel JointModel;
+
+  q_out.head(nq_root) = q_in.head(nq_root);
+  v_out.head(nv_root) = v_in.head(nv_root);
+  for (std::size_t j = root_joint_id;
+       j < static_cast<std::size_t>(model.njoints); ++j) {
+    const std::string &name = model.names[j];
+    JointModel joint = model.joints[model.getJointId(name)];
+    JointModel reduced_joint = model.joints[reduced_model.getJointId(name)];
+    q_out(joint.idx_q()) = q_in(reduced_joint.idx_q());
+    v_out(joint.idx_v()) = v_in(reduced_joint.idx_v());
+    tau_out(joint.idx_v() - nv_root) = tau_in(reduced_joint.idx_v() - nv_root);
+  }
+  for (pinocchio::JointIndex joint_id : locked_joint_ids) {
+    JointModel joint = model.joints[joint_id];
+    q_out(joint.idx_q()) = qref(joint.idx_q());
+    v_out(joint.idx_v()) = 0.;
+    tau_out(joint.idx_v() - nv_root) = 0.;
+  }
+}
+
+/**
+ * @brief Conversion to reduced position, velocity and effort from a full one
+ *
+ * @param model[in]  Pinocchio model
+ * @param reduced_model[in]  Reduced Pinocchio model
+ * @param q_out[out]  Reduced configuration vector (dimension: reduced_model.nq)
+ * @param v_out[out]  Reduced generalized velocity (dimension: reduced_model.nv)
+ * @param tau_out[out]  Reduced joint effort (dimension: reduced_model.nv -
+ * nv_root)
+ * @param q[in]  Configuration vector (dimension: model.nq)
+ * @param v[in]  Generalized velocity (dimension: model.nv)
+ * @param tau[in]  Joint effort (dimension: model.nv - nv_root)
+ */
+template <int Options, template <typename, int> class JointCollectionTpl>
+static inline void
+toReduced(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+          const pinocchio::ModelTpl<double, Options, JointCollectionTpl>
+              &reduced_model,
+          Eigen::Ref<Eigen::VectorXd> q_out, Eigen::Ref<Eigen::VectorXd> v_out,
+          Eigen::Ref<Eigen::VectorXd> tau_out,
+          const Eigen::Ref<const Eigen::VectorXd> &q_in,
+          const Eigen::Ref<const Eigen::VectorXd> &v_in,
+          const Eigen::Ref<const Eigen::VectorXd> &tau_in) {
+  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t nq_root = model.joints[root_joint_id].nq();
+  const std::size_t nv_root = model.joints[root_joint_id].nv();
+  if (q_out.size() != reduced_model.nq) {
+    throw std::invalid_argument(
+        "Expected q_out to be " + std::to_string(reduced_model.nq) +
+        " but received " + std::to_string(q_out.size()));
+  }
+  if (q_in.size() != model.nq) {
+    throw std::invalid_argument("Expected q_in to be " +
+                                std::to_string(model.nq) + " but received " +
+                                std::to_string(q_in.size()));
+  }
+  if (v_out.size() != reduced_model.nv) {
+    throw std::invalid_argument(
+        "Expected v_out to be " + std::to_string(reduced_model.nv) +
+        " but received " + std::to_string(v_out.size()));
+  }
+  if (v_in.size() != model.nv) {
+    throw std::invalid_argument("Expected v_in to be " +
+                                std::to_string(model.nv) + " but received " +
+                                std::to_string(v_in.size()));
+  }
+  if (static_cast<std::size_t>(tau_out.size()) != reduced_model.nv - nv_root) {
+    throw std::invalid_argument(
+        "Expected tau_out to be " + std::to_string(reduced_model.nv - nv_root) +
+        " but received " + std::to_string(tau_out.size()));
+  }
+  if (static_cast<std::size_t>(tau_in.size()) != model.nv - nv_root) {
+    throw std::invalid_argument(
+        "Expected tau_in to be " + std::to_string(model.nv - nv_root) +
+        " but received " + std::to_string(tau_in.size()));
+  }
+
+  typedef pinocchio::ModelTpl<double, Options, JointCollectionTpl> Model;
+  typedef typename Model::JointModel JointModel;
+
+  q_out.head(nq_root) = q_in.head(nq_root);
+  v_out.head(nv_root) = v_in.head(nv_root);
+  for (std::size_t j = root_joint_id;
+       j < static_cast<std::size_t>(model.njoints); ++j) {
+    const std::string &name = model.names[j];
+    JointModel joint = model.joints[model.getJointId(name)];
+    JointModel reduced_joint = model.joints[reduced_model.getJointId(name)];
+    q_out(reduced_joint.idx_q()) = q_in(joint.idx_q());
+    v_out(reduced_joint.idx_v()) = v_in(joint.idx_v());
+    tau_out(reduced_joint.idx_v() - nv_root) = tau_in(joint.idx_v() - nv_root);
+  }
+}
+
+template <int Options, template <typename, int> class JointCollectionTpl>
+static inline std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
+fromReduced_return(
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl>
+        &reduced_model,
+    const Eigen::Ref<const Eigen::VectorXd> &q_in,
+    const Eigen::Ref<const Eigen::VectorXd> &v_in,
+    const Eigen::Ref<const Eigen::VectorXd> &tau_in,
+    const Eigen::Ref<const Eigen::VectorXd> &qref,
+    const std::vector<pinocchio::JointIndex> &locked_joint_ids) {
+  const std::size_t root_joint_id = get_root_joint_id(model);
+  Eigen::VectorXd q_out = Eigen::VectorXd::Zero(model.nq);
+  Eigen::VectorXd v_out = Eigen::VectorXd::Zero(model.nv);
+  Eigen::VectorXd tau_out =
+      Eigen::VectorXd::Zero(model.nv - model.joints[root_joint_id].nv());
+  fromReduced(model, reduced_model, q_out, v_out, tau_out, q_in, v_in, tau_in,
+              qref, locked_joint_ids);
+  return {q_out, v_out, tau_out};
+}
+
+template <int Options, template <typename, int> class JointCollectionTpl>
+static inline std::tuple<Eigen::VectorXd, Eigen::VectorXd, Eigen::VectorXd>
+toReduced_return(
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl>
+        &reduced_model,
+    const Eigen::Ref<const Eigen::VectorXd> &q_in,
+    const Eigen::Ref<const Eigen::VectorXd> &v_in,
+    const Eigen::Ref<const Eigen::VectorXd> &tau_in) {
+  const std::size_t root_joint_id = get_root_joint_id(model);
+  Eigen::VectorXd q_out = Eigen::VectorXd::Zero(reduced_model.nq);
+  Eigen::VectorXd v_out = Eigen::VectorXd::Zero(reduced_model.nv);
+  Eigen::VectorXd tau_out = Eigen::VectorXd::Zero(
+      reduced_model.nv - model.joints[root_joint_id].nv());
+  toReduced(model, reduced_model, q_out, v_out, tau_out, q_in, v_in, tau_in);
+  return {q_out, v_out, tau_out};
 }
 
 } // namespace crocoddyl_msgs
