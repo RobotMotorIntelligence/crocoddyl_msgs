@@ -22,7 +22,7 @@
 namespace crocoddyl_msgs {
 
 class WholeBodyTrajectoryRosPublisher {
- public:
+public:
   /**
    * @brief Initialize the whole-body trajectory publisher
    *
@@ -32,24 +32,26 @@ class WholeBodyTrajectoryRosPublisher {
    * @param[in] queue  Queue size
    */
 #ifdef ROS2
-  WholeBodyTrajectoryRosPublisher(pinocchio::Model &model,
-                                  const std::string &topic = "/crocoddyl/whole_body_trajectory",
-                                  const std::string &frame = "odom", int queue = 10)
+  WholeBodyTrajectoryRosPublisher(
+      pinocchio::Model &model,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom", int queue = 10)
       : node_("whole_body_trajectory_publisher"),
         pub_(node_.create_publisher<WholeBodyTrajectory>(topic, queue)),
-        model_(model),
-        data_(model),
-        odom_frame_(frame),
-        a_null_(model.nv) {
-    RCLCPP_INFO_STREAM(node_.get_logger(), "Publishing WholeBodyTrajectory messages on " << topic <<  " (frame: " << frame << ")");
+        model_(model), data_(model), odom_frame_(frame), a_null_(model.nv) {
+    RCLCPP_INFO_STREAM(node_.get_logger(),
+                       "Publishing WholeBodyTrajectory messages on "
+                           << topic << " (frame: " << frame << ")");
 #else
-  WholeBodyTrajectoryRosPublisher(pinocchio::Model &model,
-                                  const std::string &topic = "/crocoddyl/whole_body_trajectory",
-                                  const std::string &frame = "odom", int queue = 10)
+  WholeBodyTrajectoryRosPublisher(
+      pinocchio::Model &model,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom", int queue = 10)
       : model_(model), data_(model), odom_frame_(frame), a_null_(model.nv) {
     ros::NodeHandle n;
     pub_.init(n, topic, queue);
-    ROS_INFO_STREAM("Publishing WholeBodyTrajectory messages on " << topic <<  " (frame: " << frame << ")");
+    ROS_INFO_STREAM("Publishing WholeBodyTrajectory messages on "
+                    << topic << " (frame: " << frame << ")");
 #endif
     pub_.msg_.header.frame_id = frame;
     a_null_.setZero();
@@ -67,16 +69,20 @@ class WholeBodyTrajectoryRosPublisher {
    * @param fs[in]   Vector of contact forces, types and statuses
    * @param ss[in]   Vector of contact surfaces and friction coefficients
    */
-  void publish(const std::vector<double> &ts, const std::vector<Eigen::VectorXd> &xs,
-               const std::vector<Eigen::VectorXd> &us, const std::vector<std::map<std::string, pinocchio::SE3>> &ps,
-               const std::vector<std::map<std::string, pinocchio::Motion>> &pds,
-               const std::vector<std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>>> &fs,
-               const std::vector<std::map<std::string, std::pair<Eigen::Vector3d, double>>> &ss) {
+  void
+  publish(const std::vector<double> &ts, const std::vector<Eigen::VectorXd> &xs,
+          const std::vector<Eigen::VectorXd> &us,
+          const std::vector<std::map<std::string, pinocchio::SE3>> &ps,
+          const std::vector<std::map<std::string, pinocchio::Motion>> &pds,
+          const std::vector<
+              std::map<std::string, std::tuple<pinocchio::Force, ContactType,
+                                               ContactStatus>>> &fs,
+          const std::vector<
+              std::map<std::string, std::pair<Eigen::Vector3d, double>>> &ss) {
     if (pub_.trylock()) {
       if (ts.size() != xs.size()) {
-        throw std::invalid_argument(
-            "The size of the ts vector needs to equal "
-            "the size of the xs vector.");
+        throw std::invalid_argument("The size of the ts vector needs to equal "
+                                    "the size of the xs vector.");
       }
       if (ts.size() != us.size()) {
         throw std::invalid_argument(
@@ -89,10 +95,9 @@ class WholeBodyTrajectoryRosPublisher {
             "the ts vector.");
       }
       if (ts.size() != pds.size()) {
-        throw std::invalid_argument(
-            "If provided, the size of the pds vector "
-            "needs to equal the size of "
-            "the ts vector.");
+        throw std::invalid_argument("If provided, the size of the pds vector "
+                                    "needs to equal the size of "
+                                    "the ts vector.");
       }
       if (ts.size() != fs.size()) {
         throw std::invalid_argument(
@@ -113,20 +118,24 @@ class WholeBodyTrajectoryRosPublisher {
       pub_.msg_.trajectory.resize(ts.size());
       for (std::size_t i = 0; i < ts.size(); ++i) {
         pub_.msg_.trajectory[i].header.frame_id = odom_frame_;
-        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i], xs[i].head(model_.nq),
-                              xs[i].tail(model_.nv), a_null_, us[i], ps[i], pds[i], fs[i], ss[i]);
+        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i],
+                              xs[i].head(model_.nq), xs[i].tail(model_.nv),
+                              a_null_, us[i], ps[i], pds[i], fs[i], ss[i]);
       }
       pub_.unlockAndPublish();
     } else {
 #ifdef ROS2
-      RCLCPP_WARN_STREAM(node_.get_logger(), "[publish] Could not lock publisher, not published feedback policy");
+      RCLCPP_WARN_STREAM(
+          node_.get_logger(),
+          "[publish] Could not lock publisher, not published feedback policy");
 #else
-      ROS_WARN_STREAM("[publish] Could not lock publisher, not published feedback policy");
+      ROS_WARN_STREAM(
+          "[publish] Could not lock publisher, not published feedback policy");
 #endif
     }
   }
 
- private:
+private:
 #ifdef ROS2
   rclcpp::Node node_;
 #endif
@@ -137,6 +146,6 @@ class WholeBodyTrajectoryRosPublisher {
   Eigen::VectorXd a_null_;
 };
 
-}  // namespace crocoddyl_msgs
+} // namespace crocoddyl_msgs
 
-#endif  // CROCODDYL_MSG_WHOLE_BODY_TRAJECTORY_PUBLISHER_H_
+#endif // CROCODDYL_MSG_WHOLE_BODY_TRAJECTORY_PUBLISHER_H_

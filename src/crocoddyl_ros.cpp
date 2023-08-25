@@ -37,13 +37,13 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
   ros::init(argc, argv, "crocoddyl_ros", ros::init_options::AnonymousName);
 #endif
 
-  m.doc() =
-      "Python interface for publishing and subscribing efficiently to "
-      "Crocoddyl messages in ROS.";
+  m.doc() = "Python interface for publishing and subscribing efficiently to "
+            "Crocoddyl messages in ROS.";
 
   py::enum_<ControlType>(m, "ControlType")
       .value("EFFORT", ControlType::EFFORT)
-      .value("ACCELERATION_CONTACTFORCE", ControlType::ACCELERATION_CONTACTFORCE)
+      .value("ACCELERATION_CONTACTFORCE",
+             ControlType::ACCELERATION_CONTACTFORCE)
       .export_values();
 
   py::enum_<ControlParametrization>(m, "ControlParametrization")
@@ -64,9 +64,11 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
       .value("SLIPPING", ContactStatus::SLIPPING)
       .export_values();
 
-  py::class_<SolverStatisticsRosPublisher, std::unique_ptr<SolverStatisticsRosPublisher, py::nodelete>>(
+  py::class_<SolverStatisticsRosPublisher,
+             std::unique_ptr<SolverStatisticsRosPublisher, py::nodelete>>(
       m, "SolverStatisticsRosPublisher")
-      .def(py::init<const std::string &>(), py::arg("topic") = "/crocoddyl/solver_statistics")
+      .def(py::init<const std::string &>(),
+           py::arg("topic") = "/crocoddyl/solver_statistics")
       .def("publish", &SolverStatisticsRosPublisher::publish,
            "Publish a solver statistic ROS message.\n\n"
            ":param iterations: number of solver iterations\n"
@@ -80,23 +82,29 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "(default 0)\n"
            ":param inequality_feasibility: inequality constraints feasibility "
            "(default 0)",
-           py::arg("iterations"), py::arg("total_time"), py::arg("solve_time"), py::arg("cost"),
-           py::arg("regularization"), py::arg("step_length"), py::arg("dynamic_feasibility"),
-           py::arg("equality_feasibility") = 0., py::arg("inequality_feasibility") = 0.);
+           py::arg("iterations"), py::arg("total_time"), py::arg("solve_time"),
+           py::arg("cost"), py::arg("regularization"), py::arg("step_length"),
+           py::arg("dynamic_feasibility"), py::arg("equality_feasibility") = 0.,
+           py::arg("inequality_feasibility") = 0.);
 
-  py::class_<SolverStatisticsRosSubscriber, std::unique_ptr<SolverStatisticsRosSubscriber, py::nodelete>>(
+  py::class_<SolverStatisticsRosSubscriber,
+             std::unique_ptr<SolverStatisticsRosSubscriber, py::nodelete>>(
       m, "SolverStatisticsRosSubscriber")
-      .def(py::init<const std::string &>(), py::arg("topic") = "/crocoddyl/solver_statistics")
-      .def("get_solver_statistics", &SolverStatisticsRosSubscriber::get_solver_statistics,
+      .def(py::init<const std::string &>(),
+           py::arg("topic") = "/crocoddyl/solver_statistics")
+      .def("get_solver_statistics",
+           &SolverStatisticsRosSubscriber::get_solver_statistics,
            "Get the latest solver statistic.\n\n"
            ":return: a list with the number of iterations, total time, solve\n"
            "time, cost, regularization, step legth, dynamic, equality and\n"
            "inequality feasibilities.")
       .def("has_new_msg", &SolverStatisticsRosSubscriber::has_new_msg);
 
-  py::class_<SolverTrajectoryRosPublisher, std::unique_ptr<SolverTrajectoryRosPublisher, py::nodelete>>(
+  py::class_<SolverTrajectoryRosPublisher,
+             std::unique_ptr<SolverTrajectoryRosPublisher, py::nodelete>>(
       m, "SolverTrajectoryRosPublisher")
-      .def(py::init<const std::string &, const std::string &>(), py::arg("topic") = "/crocoddyl/solver_trajectory",
+      .def(py::init<const std::string &, const std::string &>(),
+           py::arg("topic") = "/crocoddyl/solver_trajectory",
            py::arg("frame") = "odom")
       .def("publish", &SolverTrajectoryRosPublisher::publish,
            "Publish a solver trajectory ROS message.\n\n"
@@ -109,13 +117,18 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param types: list of control types\n"
            ":param params: list of control parametrizations",
            py::arg("ts"), py::arg("dts"), py::arg("xs"), py::arg("dxs"),
-           py::arg("us") = std::vector<Eigen::VectorXd>(), py::arg("Ks") = std::vector<Eigen::MatrixXd>(),
-           py::arg("types") = std::vector<ControlType>(), py::arg("params") = std::vector<ControlParametrization>());
+           py::arg("us") = std::vector<Eigen::VectorXd>(),
+           py::arg("Ks") = std::vector<Eigen::MatrixXd>(),
+           py::arg("types") = std::vector<ControlType>(),
+           py::arg("params") = std::vector<ControlParametrization>());
 
-  py::class_<SolverTrajectoryRosSubscriber, std::unique_ptr<SolverTrajectoryRosSubscriber, py::nodelete>>(
+  py::class_<SolverTrajectoryRosSubscriber,
+             std::unique_ptr<SolverTrajectoryRosSubscriber, py::nodelete>>(
       m, "SolverTrajectoryRosSubscriber")
-      .def(py::init<const std::string &>(), py::arg("topic") = "/crocoddyl/solver_trajectory")
-      .def("get_solver_trajectory", &SolverTrajectoryRosSubscriber::get_solver_trajectory,
+      .def(py::init<const std::string &>(),
+           py::arg("topic") = "/crocoddyl/solver_trajectory")
+      .def("get_solver_trajectory",
+           &SolverTrajectoryRosSubscriber::get_solver_trajectory,
            "Get the latest solver trajectory.\n\n"
            ":return: a list with the vector of time at the beginning of the\n"
            "interval, its durations, initial state, state's rate of change,\n"
@@ -123,10 +136,13 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "parametrization.")
       .def("has_new_msg", &SolverTrajectoryRosSubscriber::has_new_msg);
 
-  py::class_<WholeBodyStateRosPublisher, std::unique_ptr<WholeBodyStateRosPublisher, py::nodelete>>(
+  py::class_<WholeBodyStateRosPublisher,
+             std::unique_ptr<WholeBodyStateRosPublisher, py::nodelete>>(
       m, "WholeBodyStateRosPublisher")
-      .def(py::init<pinocchio::Model &, const std::string &, const std::string &>(), py::arg("model"),
-           py::arg("topic") = "/crocoddyl/whole_body_state", py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"), py::arg("topic") = "/crocoddyl/whole_body_state",
+           py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("publish", &WholeBodyStateRosPublisher::publish,
            "Publish a whole-body state ROS message.\n\n"
@@ -138,13 +154,16 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param pd: contact velocity\n"
            ":param f: contact force, type and status\n"
            ":param s: contact surface and friction coefficient",
-           py::arg("t"), py::arg("q"), py::arg("v"), py::arg("tau"), py::arg("p"), py::arg("pd"), py::arg("f"),
-           py::arg("s"));
+           py::arg("t"), py::arg("q"), py::arg("v"), py::arg("tau"),
+           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"));
 
-  py::class_<WholeBodyStateRosSubscriber, std::unique_ptr<WholeBodyStateRosSubscriber, py::nodelete>>(
+  py::class_<WholeBodyStateRosSubscriber,
+             std::unique_ptr<WholeBodyStateRosSubscriber, py::nodelete>>(
       m, "WholeBodyStateRosSubscriber")
-      .def(py::init<pinocchio::Model &, const std::string &, const std::string &>(), py::arg("model"),
-           py::arg("topic") = "/crocoddyl/whole_body_state", py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"), py::arg("topic") = "/crocoddyl/whole_body_state",
+           py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("get_state", &WholeBodyStateRosSubscriber::get_state,
            "Get the latest whole-body state.\n\n"
@@ -155,10 +174,14 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "coefficient).")
       .def("has_new_msg", &WholeBodyStateRosSubscriber::has_new_msg);
 
-  py::class_<WholeBodyTrajectoryRosPublisher, std::unique_ptr<WholeBodyTrajectoryRosPublisher, py::nodelete>>(
+  py::class_<WholeBodyTrajectoryRosPublisher,
+             std::unique_ptr<WholeBodyTrajectoryRosPublisher, py::nodelete>>(
       m, "WholeBodyTrajectoryRosPublisher")
-      .def(py::init<pinocchio::Model &, const std::string &, const std::string &, int>(), py::arg("model"),
-           py::arg("topic") = "/crocoddyl/whole_body_trajectory", py::arg("frame") = "odom", py::arg("queue") = 10)
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &, int>(),
+           py::arg("model"),
+           py::arg("topic") = "/crocoddyl/whole_body_trajectory",
+           py::arg("frame") = "odom", py::arg("queue") = 10)
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("publish", &WholeBodyTrajectoryRosPublisher::publish,
            "Publish a whole-body trajectory ROS message.\n\n"
@@ -169,12 +192,17 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param pds: list of contact velocities\n"
            ":param fs: list of contact forces, types and statuses\n"
            ":param ss: list of contact surfaces and friction coefficients",
-           py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps"), py::arg("pds"), py::arg("fs"), py::arg("ss"));
+           py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps"),
+           py::arg("pds"), py::arg("fs"), py::arg("ss"));
 
-  py::class_<WholeBodyTrajectoryRosSubscriber, std::unique_ptr<WholeBodyTrajectoryRosSubscriber, py::nodelete>>(
+  py::class_<WholeBodyTrajectoryRosSubscriber,
+             std::unique_ptr<WholeBodyTrajectoryRosSubscriber, py::nodelete>>(
       m, "WholeBodyTrajectoryRosSubscriber")
-      .def(py::init<pinocchio::Model &, const std::string &, const std::string &>(), py::arg("model"),
-           py::arg("topic") = "/crocoddyl/whole_body_trajectory", py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"),
+           py::arg("topic") = "/crocoddyl/whole_body_trajectory",
+           py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("get_trajectory", &WholeBodyTrajectoryRosSubscriber::get_trajectory,
            "Get the latest whole-body trajectory.\n\n"
