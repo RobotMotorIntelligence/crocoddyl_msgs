@@ -24,11 +24,11 @@ else:
     import rosunit
 
 from crocoddyl_ros import (
-    toReduced,
     ContactStatus,
     ContactType,
     WholeBodyTrajectoryRosPublisher,
     WholeBodyTrajectoryRosSubscriber,
+    toReduced,
 )
 
 
@@ -163,7 +163,9 @@ class TestWholeBodyTrajectory(unittest.TestCase):
         sub = WholeBodyTrajectoryRosSubscriber(
             model, locked_joints, qref, "whole_body_trajectory"
         )
-        pub = WholeBodyTrajectoryRosPublisher(model, locked_joints, qref, "whole_body_trajectory")
+        pub = WholeBodyTrajectoryRosPublisher(
+            model, locked_joints, qref, "whole_body_trajectory"
+        )
         time.sleep(1)
         # publish whole-body trajectory messages
         N = len(self.ts)
@@ -223,6 +225,7 @@ class TestWholeBodyTrajectory(unittest.TestCase):
                     _S[1],
                     "Wrong contact friction coefficient at " + name + ", " + str(i),
                 )
+
 
 if __name__ == "__main__":
     if ROS_VERSION == 2:
