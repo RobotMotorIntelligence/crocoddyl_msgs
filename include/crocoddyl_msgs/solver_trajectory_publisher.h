@@ -32,10 +32,10 @@ public:
    * @param[in] topic  Topic name
    * @param[in] frame  Odometry frame
    */
-#ifdef ROS2
   SolverTrajectoryRosPublisher(
       const std::string &topic = "/crocoddyl/solver_trajectory",
       const std::string &frame = "odom")
+#ifdef ROS2
       : node_("solver_trajectory_publisher"),
         pub_(node_.create_publisher<crocoddyl_msgs::msg::SolverTrajectory>(
             topic, 1)) {
@@ -43,9 +43,7 @@ public:
                        "Publishing SolverTrajectory messages on "
                            << topic << " (frame: " << frame << ")");
 #else
-  SolverTrajectoryRosPublisher(
-      const std::string &topic = "/crocoddyl/solver_trajectory",
-      const std::string &frame = "odom") {
+  {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
     ROS_INFO_STREAM("Publishing SolverTrajectory messages on "

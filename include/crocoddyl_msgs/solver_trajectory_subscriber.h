@@ -39,9 +39,9 @@ public:
    * @param[in] topic  Topic name
    * @param[in] frame  Odometry frame
    */
-#ifdef ROS2
   SolverTrajectoryRosSubscriber(
       const std::string &topic = "/crocoddyl/solver_trajectory")
+#ifdef ROS2
       : node_(rclcpp::Node::make_shared("solver_trajectory_subscriber")),
         sub_(node_->create_subscription<SolverTrajectory>(
             topic, 1,
@@ -54,14 +54,11 @@ public:
     RCLCPP_INFO_STREAM(node_->get_logger(),
                        "Subscribing SolverTrajectory messages on " << topic);
 #else
-  SolverTrajectoryRosSubscriber(
-      const std::string &topic = "/crocoddyl/solver_trajectory")
-      : spinner_(2), has_new_msg_(false), is_processing_msg_(false),
-        last_msg_time_(0.) {
-    ros::NodeHandle n;
-    sub_ = n.subscribe<SolverTrajectory>(
-        topic, 1, &SolverTrajectoryRosSubscriber::callback, this,
-        ros::TransportHints().tcpNoDelay());
+      : node_(), spinner_(2),
+        sub_(node_.subscribe<SolverTrajectory>(
+            topic, 1, &SolverTrajectoryRosSubscriber::callback, this,
+            ros::TransportHints().tcpNoDelay())),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
     spinner_.start();
     ROS_INFO_STREAM("Subscribing SolverTrajectory messages on " << topic);
 #endif
@@ -136,6 +133,7 @@ private:
   void spin() { spinner_.spin(); }
   rclcpp::Subscription<SolverTrajectory>::SharedPtr sub_; //!< ROS subscriber
 #else
+  ros::NodeHandle node_;
   ros::AsyncSpinner spinner_;
   ros::Subscriber sub_; //!< ROS subscriber
 #endif
@@ -153,6 +151,7 @@ private:
   std::vector<Eigen::MatrixXd> Ks_;
   std::vector<crocoddyl_msgs::ControlType> types_;
   std::vector<crocoddyl_msgs::ControlParametrization> params_;
+
   void callback(SolverTrajectorySharedPtr msg) {
     if (!is_processing_msg_) {
 #ifdef ROS2
