@@ -28,6 +28,8 @@ typedef const whole_body_state_msgs::WholeBodyTrajectory::ConstPtr
     &WholeBodyTrajectorySharedPtr;
 #endif
 
+static std::vector<std::string> DEFAULT_VECTOR;
+
 class WholeBodyTrajectoryRosSubscriber {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -39,11 +41,12 @@ public:
    * @param[in] topic  Topic name
    * @param[in] frame  Odometry frame
    */
-#ifdef ROS2
+
   WholeBodyTrajectoryRosSubscriber(
       pinocchio::Model &model,
       const std::string &topic = "/crocoddyl/whole_body_trajectory",
       const std::string &frame = "odom")
+#ifdef ROS2
       : node_(rclcpp::Node::make_shared("whole_body_trajectory_subscriber")),
         sub_(node_->create_subscription<WholeBodyTrajectory>(
             topic, 1,
@@ -52,30 +55,19 @@ public:
         has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
         odom_frame_(frame), model_(model), data_(model), a_(model.nv),
         is_reduced_model_(false) {
-    spinner_.add_node(node_);
-    thread_ = std::thread([this]() { this->spin(); });
-    thread_.detach();
     RCLCPP_INFO_STREAM(node_->get_logger(),
                        "Subscribing WholeBodyTrajectory messages on " << topic);
 #else
-  WholeBodyTrajectoryRosSubscriber(
-      pinocchio::Model &model,
-      const std::string &topic = "/crocoddyl/whole_body_trajectory",
-      const std::string &frame = "odom")
-      : spinner_(2), has_new_msg_(false), is_processing_msg_(false),
-        last_msg_time_(0.), odom_frame_(frame), model_(model), data_(model),
-        a_(model.nv), is_reduced_model_(false) {
-    ros::NodeHandle n;
-    sub_ = n.subscribe<WholeBodyTrajectory>(
-        topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
-        ros::TransportHints().tcpNoDelay());
-    spinner_.start();
+      : node_(), spinner_(2),
+        sub_(node_.subscribe<WholeBodyTrajectory>(
+            topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
+            ros::TransportHints().tcpNoDelay())),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model), a_(model.nv),
+        is_reduced_model_(false) {
     ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
 #endif
-    a_.setZero();
-    const std::size_t root_joint_id = get_root_joint_id(model);
-    nx_ = model_.nq + model_.nv;
-    nu_ = model.nv - model.joints[root_joint_id].nv();
+    init();
   }
 
   /**
@@ -88,12 +80,12 @@ public:
    * @param[in] topic          Topic name
    * @param[in] frame          Odometry frame
    */
-#ifdef ROS2
   WholeBodyTrajectoryRosSubscriber(
-      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      pinocchio::Model &model, const std::vector<std::string> &locked_joints,
       const Eigen::Ref<const Eigen::VectorXd> &qref,
       const std::string &topic = "/crocoddyl/whole_body_trajectory",
       const std::string &frame = "odom")
+#ifdef ROS2
       : node_(rclcpp::Node::make_shared("whole_body_trajectory_subscriber")),
         sub_(node_->create_subscription<WholeBodyTrajectory>(
             topic, 1,
@@ -102,60 +94,20 @@ public:
         has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
         odom_frame_(frame), model_(model), data_(model), a_(model.nv),
         qref_(qref), is_reduced_model_(false) {
-    spinner_.add_node(node_);
-    thread_ = std::thread([this]() { this->spin(); });
-    thread_.detach();
     RCLCPP_INFO_STREAM(node_->get_logger(),
                        "Subscribing WholeBodyTrajectory messages on " << topic);
-    if (qref_.size() != model_.nq) {
-      RCLCPP_ERROR_STREAM(node_.get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
-    }
 #else
-  WholeBodyTrajectoryRosSubscriber(
-      pinocchio::Model &model, std::vector<std::string> locked_joints,
-      const Eigen::Ref<const Eigen::VectorXd> &qref,
-      const std::string &topic = "/crocoddyl/whole_body_trajectory",
-      const std::string &frame = "odom")
-      : spinner_(2), has_new_msg_(false), is_processing_msg_(false),
-        last_msg_time_(0.), odom_frame_(frame), model_(model), data_(model),
+      : node_(), spinner_(2),
+        sub_(node_.subscribe<WholeBodyTrajectory>(
+            topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
+            ros::TransportHints().tcpNoDelay())),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model),
         a_(model.nv - locked_joints.size()), qref_(qref),
         is_reduced_model_(false) {
-    ros::NodeHandle n;
-    sub_ = n.subscribe<WholeBodyTrajectory>(
-        topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
-        ros::TransportHints().tcpNoDelay());
-    spinner_.start();
     ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
-    if (qref_.size() != model_.nq) {
-      ROS_ERROR_STREAM(
-          "Invalid argument: qref has wrong dimension (it should be "
-          << std::to_string(model_.nq) << ")");
-    }
 #endif
-    // Build reduce model
-    for (std::string name : locked_joints) {
-      if (model_.existJointName(name)) {
-        joint_ids_.push_back(model_.getJointId(name));
-      } else {
-#ifdef ROS2
-        RCLCPP_ERROR_STREAM(node_.get_logger(),
-                            "Doesn't exist " << name << " joint");
-#else
-        ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
-#endif
-      }
-    }
-    pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
-    data_ = pinocchio::Data(reduced_model_);
-
-    const std::size_t root_joint_id = get_root_joint_id(model);
-    const std::size_t nv_root = model.joints[root_joint_id].nv();
-    a_.setZero();
-    qfull_ = Eigen::VectorXd::Zero(model_.nq);
-    vfull_ = Eigen::VectorXd::Zero(model_.nv);
-    ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
-    nx_ = reduced_model_.nq + reduced_model_.nv;
-    nu_ = reduced_model_.nv - nv_root;
+    init(locked_joints);
   }
   ~WholeBodyTrajectoryRosSubscriber() = default;
 
@@ -248,6 +200,7 @@ private:
   void spin() { spinner_.spin(); }
   rclcpp::Subscription<WholeBodyTrajectory>::SharedPtr sub_; //!< ROS subscriber
 #else
+  ros::NodeHandle node_;
   ros::AsyncSpinner spinner_;
   ros::Subscriber sub_; //!< ROS subscriber
 #endif
@@ -295,6 +248,60 @@ private:
   std::vector<std::map<std::string,
                        std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>>
       fs_tmp_;
+
+  void init(const std::vector<std::string> &locked_joints = DEFAULT_VECTOR) {
+#ifdef ROS2
+    spinner_.add_node(node_);
+    thread_ = std::thread([this]() { this->spin(); });
+    thread_.detach();
+#else
+    spinner_.start();
+#endif
+
+    const std::size_t root_joint_id = get_root_joint_id(model_);
+    const std::size_t nv_root = model_.joints[root_joint_id].nv();
+    if (locked_joints.size() != 0) {
+      // Check the size of the reference configuration
+      if (qref_.size() != model_.nq) {
+#ifdef ROS2
+        RCLCPP_ERROR_STREAM(node_->get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
+#else
+        ROS_ERROR_STREAM(
+            "Invalid argument: qref has wrong dimension (it should be "
+            << std::to_string(model_.nq) << ")");
+#endif
+      }
+      // Build the reduced model
+      for (std::string name : locked_joints) {
+        if (model_.existJointName(name)) {
+          joint_ids_.push_back(model_.getJointId(name));
+        } else {
+#ifdef ROS2
+          RCLCPP_ERROR_STREAM(node_->get_logger(),
+                              "Doesn't exist " << name << " joint");
+#else
+          ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
+#endif
+        }
+      }
+      pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
+      data_ = pinocchio::Data(reduced_model_);
+      // Initialize the vectors and dimensions
+      a_.setZero();
+      qfull_ = Eigen::VectorXd::Zero(model_.nq);
+      vfull_ = Eigen::VectorXd::Zero(model_.nv);
+      ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
+      nx_ = reduced_model_.nq + reduced_model_.nv;
+      nu_ = reduced_model_.nv - nv_root;
+    } else {
+      // Initialize the vectors and dimensions
+      a_.setZero();
+      nx_ = model_.nq + model_.nv;
+      nu_ = model_.nv - nv_root;
+      is_reduced_model_ = false;
+    }
+  }
+
   void callback(WholeBodyTrajectorySharedPtr msg) {
     if (msg->header.frame_id != odom_frame_) {
 #ifdef ROS2
