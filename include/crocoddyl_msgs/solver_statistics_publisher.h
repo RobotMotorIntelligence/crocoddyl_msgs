@@ -27,17 +27,16 @@ public:
    *
    * @param[in] topic  Topic name
    */
-#ifdef ROS2
   SolverStatisticsRosPublisher(
       const std::string &topic = "/crocoddyl/solver_statistics")
+#ifdef ROS2
       : node_("solver_statistics_publisher"),
         pub_(node_.create_publisher<crocoddyl_msgs::msg::SolverStatistics>(
             topic, 1)) {
     RCLCPP_INFO_STREAM(node_.get_logger(),
                        "Publishing SolverStatistics messages on " << topic);
 #else
-  SolverStatisticsRosPublisher(
-      const std::string &topic = "/crocoddyl/solver_statistics") {
+  {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
     ROS_INFO_STREAM("Publishing SolverStatistics messages on " << topic);

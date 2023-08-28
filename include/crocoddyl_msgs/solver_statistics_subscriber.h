@@ -35,9 +35,9 @@ public:
    *
    * @param[in] topic  Topic name
    */
-#ifdef ROS2
   SolverStatisticsRosSubscriber(
       const std::string &topic = "/crocoddyl/solver_statistics")
+#ifdef ROS2
       : node_(rclcpp::Node::make_shared("solver_statistics_subscriber")),
         sub_(node_->create_subscription<SolverStatistics>(
             topic, 1,
@@ -50,14 +50,11 @@ public:
     RCLCPP_INFO_STREAM(node_->get_logger(),
                        "Subscribing SolverStatistics messages on " << topic);
 #else
-  SolverStatisticsRosSubscriber(
-      const std::string &topic = "/crocoddyl/solver_statistics")
-      : spinner_(2), has_new_msg_(false), is_processing_msg_(false),
-        last_msg_time_(0.) {
-    ros::NodeHandle n;
-    sub_ = n.subscribe<SolverStatistics>(
-        topic, 1, &SolverStatisticsRosSubscriber::callback, this,
-        ros::TransportHints().tcpNoDelay());
+      : node_(), spinner_(2),
+        sub_(node_.subscribe<SolverStatistics>(
+            topic, 1, &SolverStatisticsRosSubscriber::callback, this,
+            ros::TransportHints().tcpNoDelay())),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
     spinner_.start();
     ROS_INFO_STREAM("Subscribing SolverStatistics messages on " << topic);
 #endif
@@ -113,6 +110,7 @@ private:
   void spin() { spinner_.spin(); }
   rclcpp::Subscription<SolverStatistics>::SharedPtr sub_; //!< ROS subscriber
 #else
+  ros::NodeHandle node_;
   ros::AsyncSpinner spinner_;
   ros::Subscriber sub_; //!< ROS subscriber
 #endif
@@ -131,6 +129,7 @@ private:
   double dynamic_feasibility_;
   double equality_feasibility_;
   double inequality_feasibility_;
+
   void callback(SolverStatisticsSharedPtr msg) {
     if (!is_processing_msg_) {
 #ifdef ROS2
