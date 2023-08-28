@@ -28,8 +28,6 @@ typedef const whole_body_state_msgs::WholeBodyTrajectory::ConstPtr
     &WholeBodyTrajectorySharedPtr;
 #endif
 
-static std::vector<std::string> DEFAULT_VECTOR;
-
 class WholeBodyTrajectoryRosSubscriber {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

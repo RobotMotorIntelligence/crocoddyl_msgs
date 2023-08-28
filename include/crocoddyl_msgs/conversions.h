@@ -46,6 +46,8 @@
 
 namespace crocoddyl_msgs {
 
+static std::vector<std::string> DEFAULT_VECTOR;
+
 enum ControlType { EFFORT = 0, ACCELERATION_CONTACTFORCE };
 
 enum ControlParametrization { POLYZERO = 0, POLYONE, POLYTWO };
