@@ -30,11 +30,11 @@ public:
    * @param[in] topic  Topic name
    * @param[in] frame  Odometry frame
    */
-#ifdef ROS2
   WholeBodyStateRosPublisher(
       pinocchio::Model &model,
       const std::string &topic = "/crocoddyl/whole_body_state",
       const std::string &frame = "odom")
+#ifdef ROS2
       : node_("whole_body_state_publisher"),
         pub_(node_.create_publisher<WholeBodyState>(topic, 1)), model_(model),
         data_(model), odom_frame_(frame), a_(model.nv),
@@ -43,10 +43,6 @@ public:
                        "Publishing WholeBodyState messages on "
                            << topic << " (frame: " << frame << ")");
 #else
-  WholeBodyStateRosPublisher(
-      pinocchio::Model &model,
-      const std::string &topic = "/crocoddyl/whole_body_state",
-      const std::string &frame = "odom")
       : model_(model), data_(model), odom_frame_(frame), a_(model.nv),
         is_reduced_model_(false) {
     ros::NodeHandle n;
@@ -54,8 +50,8 @@ public:
     ROS_INFO_STREAM("Publishing WholeBodyState messages on "
                     << topic << " (frame: " << frame << ")");
 #endif
-    a_.setZero();
     pub_.msg_.header.frame_id = frame;
+    init();
   }
 
   /**
@@ -68,12 +64,12 @@ public:
    * @param[in] topic          Topic name
    * @param[in] frame          Odometry frame
    */
-#ifdef ROS2
   WholeBodyStateRosPublisher(
-      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      pinocchio::Model &model, const std::vector<std::string> &locked_joints,
       const Eigen::Ref<const Eigen::VectorXd> &qref,
       const std::string &topic = "/crocoddyl/whole_body_state",
       const std::string &frame = "odom")
+#ifdef ROS2
       : node_("whole_body_state_publisher"),
         pub_(node_.create_publisher<WholeBodyState>(topic, 1)), model_(model),
         odom_frame_(frame), a_(model.nv - locked_joints.size()), qref_(qref),
@@ -81,51 +77,16 @@ public:
     RCLCPP_INFO_STREAM(node_.get_logger(),
                        "Publishing WholeBodyState messages on "
                            << topic << " (frame: " << frame << ")");
-    if (qref_.size() != model_.nq) {
-      RCLCPP_ERROR_STREAM(node_.get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
-    }
 #else
-  WholeBodyStateRosPublisher(
-      pinocchio::Model &model, std::vector<std::string> locked_joints,
-      const Eigen::Ref<const Eigen::VectorXd> &qref,
-      const std::string &topic = "/crocoddyl/whole_body_state",
-      const std::string &frame = "odom")
       : model_(model), odom_frame_(frame), a_(model.nv - locked_joints.size()),
         qref_(qref), is_reduced_model_(true) {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
     ROS_INFO_STREAM("Publishing WholeBodyState messages on "
                     << topic << " (frame: " << frame << ")");
-    if (qref_.size() != model_.nq) {
-      ROS_ERROR_STREAM(
-          "Invalid argument: qref has wrong dimension (it should be "
-          << std::to_string(model_.nq) << ")");
-    }
 #endif
-    a_.setZero();
     pub_.msg_.header.frame_id = frame;
-
-    // Build reduce model
-    for (std::string name : locked_joints) {
-      if (model_.existJointName(name)) {
-        joint_ids_.push_back(model_.getJointId(name));
-      } else {
-#ifdef ROS2
-        RCLCPP_ERROR_STREAM(node_.get_logger(),
-                            "Doesn't exist " << name << " joint");
-#else
-        ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
-#endif
-      }
-    }
-    pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
-    data_ = pinocchio::Data(reduced_model_);
-
-    const std::size_t root_joint_id = get_root_joint_id(model);
-    const std::size_t nv_root = model.joints[root_joint_id].nv();
-    qfull_ = Eigen::VectorXd::Zero(model.nq);
-    vfull_ = Eigen::VectorXd::Zero(model.nv);
-    ufull_ = Eigen::VectorXd::Zero(model.nv - nv_root);
+    init(locked_joints);
   }
   ~WholeBodyStateRosPublisher() = default;
 
@@ -183,6 +144,46 @@ private:
   Eigen::VectorXd vfull_;
   Eigen::VectorXd ufull_;
   bool is_reduced_model_;
+
+  void init(const std::vector<std::string> &locked_joints = DEFAULT_VECTOR) {
+    a_.setZero();
+
+    if (locked_joints.size() != 0) {
+      // Check the size of the reference configuration
+#ifdef ROS2
+      if (qref_.size() != model_.nq) {
+        RCLCPP_ERROR_STREAM(node_.get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
+      }
+#else
+      if (qref_.size() != model_.nq) {
+        ROS_ERROR_STREAM(
+            "Invalid argument: qref has wrong dimension (it should be "
+            << std::to_string(model_.nq) << ")");
+      }
+#endif
+      // Build the reduced model
+      for (std::string name : locked_joints) {
+        if (model_.existJointName(name)) {
+          joint_ids_.push_back(model_.getJointId(name));
+        } else {
+#ifdef ROS2
+          RCLCPP_ERROR_STREAM(node_.get_logger(),
+                              "Doesn't exist " << name << " joint");
+#else
+          ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
+#endif
+        }
+      }
+      pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
+      data_ = pinocchio::Data(reduced_model_);
+      // Initialize the vectors and dimensions
+      const std::size_t root_joint_id = get_root_joint_id(model_);
+      const std::size_t nv_root = model_.joints[root_joint_id].nv();
+      qfull_ = Eigen::VectorXd::Zero(model_.nq);
+      vfull_ = Eigen::VectorXd::Zero(model_.nv);
+      ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
+    }
+  }
 };
 
 } // namespace crocoddyl_msgs
