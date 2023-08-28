@@ -8,6 +8,7 @@ endif()
 # Set up project properties
 set(PROJECT_NAME crocoddyl_msgs)
 set(PROJECT_DESCRIPTION "Crocoddyl ROS messages")
+set(PROJECT_VERSION 1.1.0)
 
 # Print initial message
 message(STATUS "${PROJECT_DESCRIPTION}, version ${PROJECT_VERSION}")
