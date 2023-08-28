@@ -202,6 +202,12 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            py::arg("model"),
            py::arg("topic") = "/crocoddyl/whole_body_trajectory",
            py::arg("frame") = "odom", py::arg("queue") = 10)
+      .def(py::init<pinocchio::Model &, const std::vector<std::string> &,
+                    const Eigen::VectorXd &, const std::string &,
+                    const std::string &, int>(),
+           py::arg("model"), py::arg("locked_joints"), py::arg("qref"),
+           py::arg("topic") = "/crocoddyl/whole_body_state",
+           py::arg("frame") = "odom", py::arg("queue") = 10)
       .def(py::init<pinocchio::Model &>(), py::arg("model"))
       .def("publish", &WholeBodyTrajectoryRosPublisher::publish,
            "Publish a whole-body trajectory ROS message.\n\n"
@@ -221,6 +227,12 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
       .def(py::init<pinocchio::Model &, const std::string &,
                     const std::string &>(),
            py::arg("model"),
+           py::arg("topic") = "/crocoddyl/whole_body_trajectory",
+           py::arg("frame") = "odom")
+      .def(py::init<pinocchio::Model &, const std::vector<std::string> &,
+                    const Eigen::VectorXd &, const std::string &,
+                    const std::string &>(),
+           py::arg("model"), py::arg("locked_joints"), py::arg("qref"),
            py::arg("topic") = "/crocoddyl/whole_body_trajectory",
            py::arg("frame") = "odom")
       .def(py::init<pinocchio::Model &>(), py::arg("model"))

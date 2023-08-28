@@ -24,7 +24,7 @@ namespace crocoddyl_msgs {
 class WholeBodyTrajectoryRosPublisher {
 public:
   /**
-   * @brief Initialize the whole-body trajectory publisher
+   * @brief Initialize the whole-body trajectory publisher.
    *
    * @param[in] model  Pinocchio model
    * @param[in] topic  Topic name
@@ -38,7 +38,8 @@ public:
       const std::string &frame = "odom", int queue = 10)
       : node_("whole_body_trajectory_publisher"),
         pub_(node_.create_publisher<WholeBodyTrajectory>(topic, queue)),
-        model_(model), data_(model), odom_frame_(frame), a_null_(model.nv) {
+        model_(model), data_(model), odom_frame_(frame), a_(model.nv),
+        is_reduced_model_(false) {
     RCLCPP_INFO_STREAM(node_.get_logger(),
                        "Publishing WholeBodyTrajectory messages on "
                            << topic << " (frame: " << frame << ")");
@@ -47,23 +48,99 @@ public:
       pinocchio::Model &model,
       const std::string &topic = "/crocoddyl/whole_body_trajectory",
       const std::string &frame = "odom", int queue = 10)
-      : model_(model), data_(model), odom_frame_(frame), a_null_(model.nv) {
+      : model_(model), data_(model), odom_frame_(frame), a_(model.nv),
+        is_reduced_model_(false) {
     ros::NodeHandle n;
     pub_.init(n, topic, queue);
     ROS_INFO_STREAM("Publishing WholeBodyTrajectory messages on "
                     << topic << " (frame: " << frame << ")");
 #endif
     pub_.msg_.header.frame_id = frame;
-    a_null_.setZero();
+    a_.setZero();
   }
+
+  /**
+   * @brief Initialize the whole-body trajectory publisher for rigid-body system
+   * with locked joints.
+   *
+   * @param[in] model          Pinocchio model
+   * @param[in] locked_joints  List of joints to be locked
+   * @param[in] qref           Reference configuration
+   * @param[in] topic          Topic name
+   * @param[in] frame          Odometry frame
+   * @param[in] queue          Queue size
+   */
+#ifdef ROS2
+  WholeBodyTrajectoryRosPublisher(
+      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      const Eigen::Ref<const Eigen::VectorXd> &qref,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom", int queue = 10)
+      : node_("whole_body_trajectory_publisher"),
+        pub_(node_.create_publisher<WholeBodyTrajectory>(topic, queue)),
+        model_(model), odom_frame_(frame), a_(model.nv - locked_joints.size()),
+        qref_(qref), is_reduced_model_(true) {
+    RCLCPP_INFO_STREAM(node_.get_logger(),
+                       "Publishing WholeBodyTrajectory messages on "
+                           << topic << " (frame: " << frame << ")");
+    if (qref_.size() != model_.nq) {
+      RCLCPP_ERROR_STREAM(node_.get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
+    }
+#else
+  WholeBodyTrajectoryRosPublisher(
+      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      const Eigen::Ref<const Eigen::VectorXd> &qref,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom", int queue = 10)
+      : model_(model), odom_frame_(frame), a_(model.nv - locked_joints.size()),
+        qref_(qref), is_reduced_model_(true) {
+    ros::NodeHandle n;
+    pub_.init(n, topic, queue);
+    ROS_INFO_STREAM("Publishing WholeBodyTrajectory messages on "
+                    << topic << " (frame: " << frame << ")");
+    if (qref_.size() != model_.nq) {
+      ROS_ERROR_STREAM(
+          "Invalid argument: qref has wrong dimension (it should be "
+          << std::to_string(model_.nq) << ")");
+    }
+#endif
+    pub_.msg_.header.frame_id = frame;
+    a_.setZero();
+
+    // Build reduce model
+    for (std::string name : locked_joints) {
+      if (model_.existJointName(name)) {
+        joint_ids_.push_back(model_.getJointId(name));
+      } else {
+#ifdef ROS2
+        RCLCPP_ERROR_STREAM(node_.get_logger(),
+                            "Doesn't exist " << name << " joint");
+#else
+        ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
+#endif
+      }
+    }
+    pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
+    data_ = pinocchio::Data(reduced_model_);
+
+    const std::size_t root_joint_id = get_root_joint_id(model);
+    const std::size_t nv_root = model.joints[root_joint_id].nv();
+    qfull_ = Eigen::VectorXd::Zero(model.nq);
+    vfull_ = Eigen::VectorXd::Zero(model.nv);
+    ufull_ = Eigen::VectorXd::Zero(model.nv - nv_root);
+  }
+
   ~WholeBodyTrajectoryRosPublisher() = default;
 
   /**
-   * @brief Publish a whole-body trajectory ROS message
+   * @brief Publish a whole-body trajectory ROS message.
+   * The dimension of the state and control is defined by the rigid-body system
+   * with locked joints.
    *
    * @param ts[in]   Vector of interval times in secs
-   * @param xs[in]   Vector of states (dimension: model.nq)
-   * @param us[in]   Vector of joint efforts (dimension: model.nv)
+   * @param xs[in]   Vector of states (dimension: model.nq - locked_joints)
+   * @param us[in]   Vector of joint efforts (dimension: model.nv -
+   * locked_joints)
    * @param ps[in]   Vector of contact positions
    * @param pds[in]  Vector of contact velocities
    * @param fs[in]   Vector of contact forces, types and statuses
@@ -118,9 +195,18 @@ public:
       pub_.msg_.trajectory.resize(ts.size());
       for (std::size_t i = 0; i < ts.size(); ++i) {
         pub_.msg_.trajectory[i].header.frame_id = odom_frame_;
-        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i],
-                              xs[i].head(model_.nq), xs[i].tail(model_.nv),
-                              a_null_, us[i], ps[i], pds[i], fs[i], ss[i]);
+        if (is_reduced_model_) {
+          fromReduced(model_, reduced_model_, qfull_, vfull_, ufull_,
+                      xs[i].head(reduced_model_.nq),
+                      xs[i].tail(reduced_model_.nv), us[i], qref_, joint_ids_);
+          crocoddyl_msgs::toMsg(reduced_model_, data_, pub_.msg_.trajectory[i],
+                                ts[i], qfull_, vfull_, a_, ufull_, ps[i],
+                                pds[i], fs[i], ss[i]);
+        } else {
+          crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i],
+                                xs[i].head(model_.nq), xs[i].tail(model_.nv),
+                                a_, us[i], ps[i], pds[i], fs[i], ss[i]);
+        }
       }
       pub_.unlockAndPublish();
     } else {
@@ -141,9 +227,16 @@ private:
 #endif
   realtime_tools::RealtimePublisher<WholeBodyTrajectory> pub_;
   pinocchio::Model model_;
+  pinocchio::Model reduced_model_;
   pinocchio::Data data_;
   std::string odom_frame_;
-  Eigen::VectorXd a_null_;
+  Eigen::VectorXd a_;
+  std::vector<pinocchio::JointIndex> joint_ids_;
+  Eigen::VectorXd qref_;
+  Eigen::VectorXd qfull_;
+  Eigen::VectorXd vfull_;
+  Eigen::VectorXd ufull_;
+  bool is_reduced_model_;
 };
 
 } // namespace crocoddyl_msgs

@@ -50,7 +50,8 @@ public:
             std::bind(&WholeBodyTrajectoryRosSubscriber::callback, this,
                       std::placeholders::_1))),
         has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
-        odom_frame_(frame), model_(model), data_(model), a_null_(model.nv) {
+        odom_frame_(frame), model_(model), data_(model), a_(model.nv),
+        is_reduced_model_(false) {
     spinner_.add_node(node_);
     thread_ = std::thread([this]() { this->spin(); });
     thread_.detach();
@@ -63,7 +64,7 @@ public:
       const std::string &frame = "odom")
       : spinner_(2), has_new_msg_(false), is_processing_msg_(false),
         last_msg_time_(0.), odom_frame_(frame), model_(model), data_(model),
-        a_null_(model.nv) {
+        a_(model.nv), is_reduced_model_(false) {
     ros::NodeHandle n;
     sub_ = n.subscribe<WholeBodyTrajectory>(
         topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
@@ -71,15 +72,99 @@ public:
     spinner_.start();
     ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
 #endif
-    a_null_.setZero();
+    a_.setZero();
     const std::size_t root_joint_id = get_root_joint_id(model);
     nx_ = model_.nq + model_.nv;
     nu_ = model.nv - model.joints[root_joint_id].nv();
   }
+
+  /**
+   * @brief Initialize the whole-body state subscriber for rigid-body system
+   * with locked joints.
+   *
+   * @param[in] model          Pinocchio model
+   * @param[in] locked_joints  List of joints to be locked
+   * @param[in] qref           Reference configuration
+   * @param[in] topic          Topic name
+   * @param[in] frame          Odometry frame
+   */
+#ifdef ROS2
+  WholeBodyTrajectoryRosSubscriber(
+      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      const Eigen::Ref<const Eigen::VectorXd> &qref,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom")
+      : node_(rclcpp::Node::make_shared("whole_body_trajectory_subscriber")),
+        sub_(node_->create_subscription<WholeBodyTrajectory>(
+            topic, 1,
+            std::bind(&WholeBodyTrajectoryRosSubscriber::callback, this,
+                      std::placeholders::_1))),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model), a_(model.nv),
+        qref_(qref), is_reduced_model_(false) {
+    spinner_.add_node(node_);
+    thread_ = std::thread([this]() { this->spin(); });
+    thread_.detach();
+    RCLCPP_INFO_STREAM(node_->get_logger(),
+                       "Subscribing WholeBodyTrajectory messages on " << topic);
+    if (qref_.size() != model_.nq) {
+      RCLCPP_ERROR_STREAM(node_.get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
+    }
+#else
+  WholeBodyTrajectoryRosSubscriber(
+      pinocchio::Model &model, std::vector<std::string> locked_joints,
+      const Eigen::Ref<const Eigen::VectorXd> &qref,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom")
+      : spinner_(2), has_new_msg_(false), is_processing_msg_(false),
+        last_msg_time_(0.), odom_frame_(frame), model_(model), data_(model),
+        a_(model.nv - locked_joints.size()), qref_(qref),
+        is_reduced_model_(false) {
+    ros::NodeHandle n;
+    sub_ = n.subscribe<WholeBodyTrajectory>(
+        topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
+        ros::TransportHints().tcpNoDelay());
+    spinner_.start();
+    ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
+    if (qref_.size() != model_.nq) {
+      ROS_ERROR_STREAM(
+          "Invalid argument: qref has wrong dimension (it should be "
+          << std::to_string(model_.nq) << ")");
+    }
+#endif
+    // Build reduce model
+    for (std::string name : locked_joints) {
+      if (model_.existJointName(name)) {
+        joint_ids_.push_back(model_.getJointId(name));
+      } else {
+#ifdef ROS2
+        RCLCPP_ERROR_STREAM(node_.get_logger(),
+                            "Doesn't exist " << name << " joint");
+#else
+        ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
+#endif
+      }
+    }
+    pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
+    data_ = pinocchio::Data(reduced_model_);
+
+    const std::size_t root_joint_id = get_root_joint_id(model);
+    const std::size_t nv_root = model.joints[root_joint_id].nv();
+    a_.setZero();
+    qfull_ = Eigen::VectorXd::Zero(model_.nq);
+    vfull_ = Eigen::VectorXd::Zero(model_.nv);
+    ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
+    nx_ = reduced_model_.nq + reduced_model_.nv;
+    nu_ = reduced_model_.nv - nv_root;
+  }
   ~WholeBodyTrajectoryRosSubscriber() = default;
 
   /**
-   * @brief Get the latest whole-body trajectory
+   * @brief Get the latest whole-body trajectory for the rigid-body system with
+   * locked joints.
+   *
+   * @todo: Use Pinocchio objects once there is a pybind11 support of std
+   * containers.
    *
    * @return  A tuple with the vector of time at the beginning of the
    * interval, state vector, joint efforts, contact positions, contact
@@ -111,9 +196,19 @@ public:
     for (std::size_t i = 0; i < N; ++i) {
       xs_[i].resize(nx_);
       us_[i].resize(nu_);
-      crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i],
-                              xs_[i].head(model_.nq), xs_[i].tail(model_.nv),
-                              a_null_, us_[i], ps_[i], pds_[i], fs_[i], ss_[i]);
+      if (is_reduced_model_) {
+        crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i],
+                                qfull_, vfull_, a_, ufull_, ps_[i], pds_[i],
+                                fs_[i], ss_[i]);
+        toReduced(model_, reduced_model_, xs_[i].head(reduced_model_.nq),
+                  xs_[i].tail(reduced_model_.nv), us_[i], qfull_, vfull_,
+                  ufull_);
+
+      } else {
+        crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i],
+                                xs_[i].head(model_.nq), xs_[i].tail(model_.nv),
+                                a_, us_[i], ps_[i], pds_[i], fs_[i], ss_[i]);
+      }
       // create maps that do not depend on Pinocchio objects
       ps_tmp_.resize(N);
       pds_tmp_.resize(N);
@@ -175,8 +270,16 @@ private:
   double last_msg_time_;
   std::string odom_frame_;
   pinocchio::Model model_;
+  pinocchio::Model reduced_model_;
   pinocchio::Data data_;
-  Eigen::VectorXd a_null_;
+  Eigen::VectorXd a_;
+  Eigen::VectorXd
+      qref_; ///!< Reference configuration used in the reduced model (size nq)
+  std::vector<pinocchio::JointIndex> joint_ids_; ///!< List of locked joint Ids
+  Eigen::VectorXd qfull_; ///!< Full configuration vector (size nq)
+  Eigen::VectorXd vfull_; ///!< Full tangent vector (size nv)
+  Eigen::VectorXd ufull_; ///!< Full torque vector (size njoints)
+  bool is_reduced_model_; ///< True if we have reduced the model
   std::size_t nx_;
   std::size_t nu_;
   // TODO(cmastalli): Temporal variables as it is needed std container support
