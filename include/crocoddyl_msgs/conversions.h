@@ -80,7 +80,7 @@ typedef whole_body_state_msgs::ContactState ContactState;
  * @param return  Root joint Id
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
-static inline std::size_t get_root_joint_id(
+static inline std::size_t getRootJointId(
     const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model) {
   return model.existJointName("root_joint")
              ? model.getJointId("root_joint")
@@ -211,7 +211,7 @@ static inline void toMsg(
     throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
                                 " but received " + std::to_string(a.size()));
   }
-  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t root_joint_id = getRootJointId(model);
   const std::size_t nv_root = model.joints[root_joint_id].nv();
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints) && tau.size() != 0) {
@@ -510,7 +510,7 @@ fromMsg(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
     throw std::invalid_argument("Expected a to be " + std::to_string(model.nv) +
                                 " but received " + std::to_string(v.size()));
   }
-  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t root_joint_id = getRootJointId(model);
   const std::size_t nv_root = model.joints[root_joint_id].nv();
   const std::size_t njoints = model.nv - nv_root;
   if (tau.size() != static_cast<int>(njoints)) {
@@ -649,7 +649,7 @@ static inline void fromReduced(
     const Eigen::Ref<const Eigen::VectorXd> &tau_in,
     const Eigen::Ref<const Eigen::VectorXd> &qref,
     const std::vector<pinocchio::JointIndex> &locked_joint_ids) {
-  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t root_joint_id = getRootJointId(model);
   const std::size_t nq_root = model.joints[root_joint_id].nq();
   const std::size_t nv_root = model.joints[root_joint_id].nv();
   if (q_out.size() != model.nq) {
@@ -728,7 +728,7 @@ toReduced(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
           const Eigen::Ref<const Eigen::VectorXd> &q_in,
           const Eigen::Ref<const Eigen::VectorXd> &v_in,
           const Eigen::Ref<const Eigen::VectorXd> &tau_in) {
-  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t root_joint_id = getRootJointId(model);
   const std::size_t nq_root = model.joints[root_joint_id].nq();
   const std::size_t nv_root = model.joints[root_joint_id].nv();
   if (q_out.size() != reduced_model.nq) {
@@ -789,7 +789,7 @@ fromReduced_return(
     const Eigen::Ref<const Eigen::VectorXd> &tau_in,
     const Eigen::Ref<const Eigen::VectorXd> &qref,
     const std::vector<pinocchio::JointIndex> &locked_joint_ids) {
-  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t root_joint_id = getRootJointId(model);
   Eigen::VectorXd q_out = Eigen::VectorXd::Zero(model.nq);
   Eigen::VectorXd v_out = Eigen::VectorXd::Zero(model.nv);
   Eigen::VectorXd tau_out =
@@ -808,7 +808,7 @@ toReduced_return(
     const Eigen::Ref<const Eigen::VectorXd> &q_in,
     const Eigen::Ref<const Eigen::VectorXd> &v_in,
     const Eigen::Ref<const Eigen::VectorXd> &tau_in) {
-  const std::size_t root_joint_id = get_root_joint_id(model);
+  const std::size_t root_joint_id = getRootJointId(model);
   Eigen::VectorXd q_out = Eigen::VectorXd::Zero(reduced_model.nq);
   Eigen::VectorXd v_out = Eigen::VectorXd::Zero(reduced_model.nv);
   Eigen::VectorXd tau_out = Eigen::VectorXd::Zero(

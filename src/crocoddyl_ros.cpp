@@ -245,6 +245,11 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "coefficients.")
       .def("has_new_msg", &WholeBodyTrajectoryRosSubscriber::has_new_msg);
 
+  m.def("getRootJointId", &getRootJointId<0, pinocchio::JointCollectionDefaultTpl>,
+           "Return the root joint id.\n\n"
+           ":param model: Pinocchio model\n"
+           ":return root joint id");
+
   m.def(
       "fromReduced",
       &fromReduced_return<0, pinocchio::JointCollectionDefaultTpl>,

@@ -256,7 +256,7 @@ private:
     spinner_.start();
 #endif
 
-    const std::size_t root_joint_id = get_root_joint_id(model_);
+    const std::size_t root_joint_id = getRootJointId(model_);
     const std::size_t nv_root = model_.joints[root_joint_id].nv();
     if (locked_joints.size() != 0) {
       // Check the size of the reference configuration
