@@ -74,13 +74,13 @@ public:
 #ifdef ROS2
       : node_("whole_body_trajectory_publisher"),
         pub_(node_.create_publisher<WholeBodyTrajectory>(topic, queue)),
-        model_(model), odom_frame_(frame), a_(model.nv - locked_joints.size()),
+        model_(model), data_(model), odom_frame_(frame), a_(model.nv),
         qref_(qref), is_reduced_model_(true) {
     RCLCPP_INFO_STREAM(node_.get_logger(),
                        "Publishing WholeBodyTrajectory messages on "
                            << topic << " (frame: " << frame << ")");
 #else
-      : model_(model), odom_frame_(frame), a_(model.nv - locked_joints.size()),
+      : model_(model), data_(model), odom_frame_(frame), a_(model.nv),
         qref_(qref), is_reduced_model_(true) {
     ros::NodeHandle n;
     pub_.init(n, topic, queue);
@@ -159,7 +159,7 @@ public:
           fromReduced(model_, reduced_model_, qfull_, vfull_, ufull_,
                       xs[i].head(reduced_model_.nq),
                       xs[i].tail(reduced_model_.nv), us[i], qref_, joint_ids_);
-          crocoddyl_msgs::toMsg(reduced_model_, data_, pub_.msg_.trajectory[i],
+          crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i],
                                 ts[i], qfull_, vfull_, a_, ufull_, ps[i],
                                 pds[i], fs[i], ss[i]);
         } else {
@@ -228,7 +228,7 @@ private:
         }
       }
       pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
-      data_ = pinocchio::Data(reduced_model_);
+
       // Initialize the vectors and dimensions
       const std::size_t root_joint_id = getRootJointId(model_);
       const std::size_t nv_root = model_.joints[root_joint_id].nv();

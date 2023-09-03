@@ -688,9 +688,9 @@ static inline void fromReduced(
 
   q_out.head(nq_root) = q_in.head(nq_root);
   v_out.head(nv_root) = v_in.head(nv_root);
-  for (std::size_t j = root_joint_id;
-       j < static_cast<std::size_t>(model.njoints); ++j) {
-    const std::string &name = model.names[j];
+  for (std::size_t j = root_joint_id + 1;
+       j < static_cast<std::size_t>(reduced_model.njoints); ++j) {
+    const std::string &name = reduced_model.names[j];
     JointModel joint = model.joints[model.getJointId(name)];
     JointModel reduced_joint = model.joints[reduced_model.getJointId(name)];
     q_out(joint.idx_q()) = q_in(reduced_joint.idx_q());
@@ -767,9 +767,9 @@ toReduced(const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
 
   q_out.head(nq_root) = q_in.head(nq_root);
   v_out.head(nv_root) = v_in.head(nv_root);
-  for (std::size_t j = root_joint_id;
-       j < static_cast<std::size_t>(model.njoints); ++j) {
-    const std::string &name = model.names[j];
+  for (std::size_t j = root_joint_id + 1;
+       j < static_cast<std::size_t>(reduced_model.njoints); ++j) {
+    const std::string &name = reduced_model.names[j];
     JointModel joint = model.joints[model.getJointId(name)];
     JointModel reduced_joint = model.joints[reduced_model.getJointId(name)];
     q_out(reduced_joint.idx_q()) = q_in(joint.idx_q());

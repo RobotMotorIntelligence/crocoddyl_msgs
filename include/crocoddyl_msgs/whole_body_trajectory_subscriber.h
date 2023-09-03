@@ -91,7 +91,7 @@ public:
                       std::placeholders::_1))),
         has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
         odom_frame_(frame), model_(model), data_(model), a_(model.nv),
-        qref_(qref), is_reduced_model_(false) {
+        qref_(qref), is_reduced_model_(true) {
     RCLCPP_INFO_STREAM(node_->get_logger(),
                        "Subscribing WholeBodyTrajectory messages on " << topic);
 #else
@@ -101,8 +101,7 @@ public:
             ros::TransportHints().tcpNoDelay())),
         has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
         odom_frame_(frame), model_(model), data_(model),
-        a_(model.nv - locked_joints.size()), qref_(qref),
-        is_reduced_model_(false) {
+        a_(model.nv), qref_(qref), is_reduced_model_(true) {
     ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
 #endif
     init(locked_joints);
@@ -153,7 +152,6 @@ public:
         toReduced(model_, reduced_model_, xs_[i].head(reduced_model_.nq),
                   xs_[i].tail(reduced_model_.nv), us_[i], qfull_, vfull_,
                   ufull_);
-
       } else {
         crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i],
                                 xs_[i].head(model_.nq), xs_[i].tail(model_.nv),
@@ -283,9 +281,8 @@ private:
         }
       }
       pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
-      data_ = pinocchio::Data(reduced_model_);
+
       // Initialize the vectors and dimensions
-      a_.setZero();
       qfull_ = Eigen::VectorXd::Zero(model_.nq);
       vfull_ = Eigen::VectorXd::Zero(model_.nv);
       ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
@@ -293,11 +290,11 @@ private:
       nu_ = reduced_model_.nv - nv_root;
     } else {
       // Initialize the vectors and dimensions
-      a_.setZero();
       nx_ = model_.nq + model_.nv;
       nu_ = model_.nv - nv_root;
       is_reduced_model_ = false;
     }
+    a_.setZero();
   }
 
   void callback(WholeBodyTrajectorySharedPtr msg) {

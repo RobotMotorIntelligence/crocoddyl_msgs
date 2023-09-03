@@ -94,11 +94,10 @@ public:
             topic, 1,
             std::bind(&WholeBodyStateRosSubscriber::callback, this,
                       std::placeholders::_1))),
-        t_(0.), q_(model.nv - locked_joints.size()),
-        v_(model.nv - locked_joints.size()),
-        a_(model.nv - locked_joints.size()), qref_(qref),
+        t_(0.), q_(model.nq - locked_joints.size()),
+        v_(model.nv - locked_joints.size()), a_(model.nv), qref_(qref),
         is_reduced_model_(true), has_new_msg_(false), is_processing_msg_(false),
-        last_msg_time_(0.), odom_frame_(frame), model_(model) {
+        last_msg_time_(0.), odom_frame_(frame), model_(model), data_(model) {
     spinner_.add_node(node_);
     thread_ = std::thread([this]() { this->spin(); });
     thread_.detach();
@@ -109,10 +108,10 @@ public:
         sub_(node_.subscribe<WholeBodyState>(
             topic, 1, &WholeBodyStateRosSubscriber::callback, this,
             ros::TransportHints().tcpNoDelay())),
-        t_(0.), q_(model.nv - locked_joints.size()),
+        t_(0.), q_(model.nq - locked_joints.size()),
         v_(model.nv - locked_joints.size()), a_(model.nv), qref_(qref),
         is_reduced_model_(true), has_new_msg_(false), is_processing_msg_(false),
-        last_msg_time_(0.), odom_frame_(frame), model_(model) {
+        last_msg_time_(0.), odom_frame_(frame), model_(model), data_(model) {
     spinner_.start();
     ROS_INFO_STREAM("Subscribing WholeBodyState messages on " << topic);
 #endif
@@ -251,7 +250,7 @@ private:
         }
       }
       pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
-      data_ = pinocchio::Data(reduced_model_);
+
       // Initialize the vectors and dimensions
       tau_ = Eigen::VectorXd::Zero(reduced_model_.nv - nv_root);
       qfull_ = Eigen::VectorXd::Zero(model_.nq);
