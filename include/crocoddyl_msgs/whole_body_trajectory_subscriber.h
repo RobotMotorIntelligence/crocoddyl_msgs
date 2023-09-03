@@ -260,7 +260,7 @@ private:
       // Check the size of the reference configuration
       if (qref_.size() != model_.nq) {
 #ifdef ROS2
-        RCLCPP_ERROR_STREAM(node_->get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
+        RCLCPP_ERROR_STREAM(node_->get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")");
 #else
         ROS_ERROR_STREAM(
             "Invalid argument: qref has wrong dimension (it should be "

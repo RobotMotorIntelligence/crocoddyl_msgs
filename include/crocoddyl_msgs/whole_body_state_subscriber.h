@@ -227,7 +227,7 @@ private:
       // Check the size of the reference configuration
 #ifdef ROS2
       if (qref_.size() != model_.nq) {
-        RCLCPP_ERROR_STREAM(node_.get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")";
+        RCLCPP_ERROR_STREAM(node_->get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")");
       }
 #else
       if (qref_.size() != model_.nq) {
@@ -242,7 +242,7 @@ private:
           joint_ids_.push_back(model_.getJointId(name));
         } else {
 #ifdef ROS2
-          RCLCPP_ERROR_STREAM(node_.get_logger(),
+          RCLCPP_ERROR_STREAM(node_->get_logger(),
                               "Doesn't exist " << name << " joint");
 #else
           ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
