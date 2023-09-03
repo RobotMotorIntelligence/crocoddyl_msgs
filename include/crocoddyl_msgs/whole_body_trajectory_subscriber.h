@@ -21,13 +21,15 @@
 namespace crocoddyl_msgs {
 
 #ifdef ROS2
-typedef const whole_body_state_msgs::msg::WholeBodyTrajectory::SharedPtr WholeBodyTrajectorySharedPtr;
+typedef const whole_body_state_msgs::msg::WholeBodyTrajectory::SharedPtr
+    WholeBodyTrajectorySharedPtr;
 #else
-typedef const whole_body_state_msgs::WholeBodyTrajectory::ConstPtr &WholeBodyTrajectorySharedPtr;
+typedef const whole_body_state_msgs::WholeBodyTrajectory::ConstPtr
+    &WholeBodyTrajectorySharedPtr;
 #endif
 
 class WholeBodyTrajectoryRosSubscriber {
- public:
+public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   /**
@@ -37,62 +39,96 @@ class WholeBodyTrajectoryRosSubscriber {
    * @param[in] topic  Topic name
    * @param[in] frame  Odometry frame
    */
+
+  WholeBodyTrajectoryRosSubscriber(
+      pinocchio::Model &model,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom")
 #ifdef ROS2
-  WholeBodyTrajectoryRosSubscriber(pinocchio::Model &model,
-                                   const std::string &topic = "/crocoddyl/whole_body_trajectory",
-                                   const std::string &frame = "odom")
       : node_(rclcpp::Node::make_shared("whole_body_trajectory_subscriber")),
         sub_(node_->create_subscription<WholeBodyTrajectory>(
-            topic, 1, std::bind(&WholeBodyTrajectoryRosSubscriber::callback, this, std::placeholders::_1))),
-        has_new_msg_(false),
-        is_processing_msg_(false),
-        last_msg_time_(0.),
-        odom_frame_(frame),
-        model_(model),
-        data_(model),
-        a_null_(model.nv) {
-    spinner_.add_node(node_);
-    thread_ = std::thread([this]() { this->spin(); });
-    thread_.detach();
-    RCLCPP_INFO_STREAM(node_->get_logger(), "Subscribing WholeBodyTrajectory messages on " << topic);
+            topic, 1,
+            std::bind(&WholeBodyTrajectoryRosSubscriber::callback, this,
+                      std::placeholders::_1))),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model), a_(model.nv),
+        is_reduced_model_(false) {
+    RCLCPP_INFO_STREAM(node_->get_logger(),
+                       "Subscribing WholeBodyTrajectory messages on " << topic);
 #else
-  WholeBodyTrajectoryRosSubscriber(pinocchio::Model &model,
-                                   const std::string &topic = "/crocoddyl/whole_body_trajectory",
-                                   const std::string &frame = "odom")
-      : spinner_(2),
-        has_new_msg_(false),
-        is_processing_msg_(false),
-        last_msg_time_(0.),
-        odom_frame_(frame),
-        model_(model),
-        data_(model),
-        a_null_(model.nv) {
-    ros::NodeHandle n;
-    sub_ = n.subscribe<WholeBodyTrajectory>(topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
-                                            ros::TransportHints().tcpNoDelay());
-    spinner_.start();
+      : node_(), spinner_(2),
+        sub_(node_.subscribe<WholeBodyTrajectory>(
+            topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
+            ros::TransportHints().tcpNoDelay())),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model), a_(model.nv),
+        is_reduced_model_(false) {
     ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
 #endif
-    a_null_.setZero();
-    const std::size_t root_joint_id = model.existJointName("root_joint") ? model.getJointId("root_joint") : 0;
-    nx_ = model_.nq + model_.nv;
-    nu_ = model.nv - model.joints[root_joint_id].nv();
+    init();
+  }
+
+  /**
+   * @brief Initialize the whole-body state subscriber for rigid-body system
+   * with locked joints.
+   *
+   * @param[in] model          Pinocchio model
+   * @param[in] locked_joints  List of joints to be locked
+   * @param[in] qref           Reference configuration
+   * @param[in] topic          Topic name
+   * @param[in] frame          Odometry frame
+   */
+  WholeBodyTrajectoryRosSubscriber(
+      pinocchio::Model &model, const std::vector<std::string> &locked_joints,
+      const Eigen::Ref<const Eigen::VectorXd> &qref,
+      const std::string &topic = "/crocoddyl/whole_body_trajectory",
+      const std::string &frame = "odom")
+#ifdef ROS2
+      : node_(rclcpp::Node::make_shared("whole_body_trajectory_subscriber")),
+        sub_(node_->create_subscription<WholeBodyTrajectory>(
+            topic, 1,
+            std::bind(&WholeBodyTrajectoryRosSubscriber::callback, this,
+                      std::placeholders::_1))),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model), a_(model.nv),
+        qref_(qref), is_reduced_model_(true) {
+    RCLCPP_INFO_STREAM(node_->get_logger(),
+                       "Subscribing WholeBodyTrajectory messages on " << topic);
+#else
+      : node_(), spinner_(2),
+        sub_(node_.subscribe<WholeBodyTrajectory>(
+            topic, 1, &WholeBodyTrajectoryRosSubscriber::callback, this,
+            ros::TransportHints().tcpNoDelay())),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.),
+        odom_frame_(frame), model_(model), data_(model),
+        a_(model.nv), qref_(qref), is_reduced_model_(true) {
+    ROS_INFO_STREAM("Subscribing WholeBodyTrajectory messages on " << topic);
+#endif
+    init(locked_joints);
   }
   ~WholeBodyTrajectoryRosSubscriber() = default;
 
   /**
-   * @brief Get the latest whole-body trajectory
+   * @brief Get the latest whole-body trajectory for the rigid-body system with
+   * locked joints.
+   *
+   * @todo: Use Pinocchio objects once there is a pybind11 support of std
+   * containers.
    *
    * @return  A tuple with the vector of time at the beginning of the
    * interval, state vector, joint efforts, contact positions, contact
    * velocities, contact forces (wrench, type and status), and contact surface
    * and friction coefficients.
    */
-  std::tuple<std::vector<double>, std::vector<Eigen::VectorXd>, std::vector<Eigen::VectorXd>,
-             std::vector<std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>>>,
-             std::vector<std::map<std::string, Eigen::VectorXd>>,
-             std::vector<std::map<std::string, std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>>,
-             std::vector<std::map<std::string, std::pair<Eigen::Vector3d, double>>>>
+  std::tuple<
+      std::vector<double>, std::vector<Eigen::VectorXd>,
+      std::vector<Eigen::VectorXd>,
+      std::vector<
+          std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>>>,
+      std::vector<std::map<std::string, Eigen::VectorXd>>,
+      std::vector<std::map<std::string, std::tuple<Eigen::VectorXd, ContactType,
+                                                   ContactStatus>>>,
+      std::vector<std::map<std::string, std::pair<Eigen::Vector3d, double>>>>
   get_trajectory() {
     // start processing the message
     is_processing_msg_ = true;
@@ -109,14 +145,25 @@ class WholeBodyTrajectoryRosSubscriber {
     for (std::size_t i = 0; i < N; ++i) {
       xs_[i].resize(nx_);
       us_[i].resize(nu_);
-      crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i], xs_[i].head(model_.nq),
-                              xs_[i].tail(model_.nv), a_null_, us_[i], ps_[i], pds_[i], fs_[i], ss_[i]);
+      if (is_reduced_model_) {
+        crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i],
+                                qfull_, vfull_, a_, ufull_, ps_[i], pds_[i],
+                                fs_[i], ss_[i]);
+        toReduced(model_, reduced_model_, xs_[i].head(reduced_model_.nq),
+                  xs_[i].tail(reduced_model_.nv), us_[i], qfull_, vfull_,
+                  ufull_);
+      } else {
+        crocoddyl_msgs::fromMsg(model_, data_, msg_.trajectory[i], ts_[i],
+                                xs_[i].head(model_.nq), xs_[i].tail(model_.nv),
+                                a_, us_[i], ps_[i], pds_[i], fs_[i], ss_[i]);
+      }
       // create maps that do not depend on Pinocchio objects
       ps_tmp_.resize(N);
       pds_tmp_.resize(N);
       fs_tmp_.resize(N);
       for (auto it = ps_[i].cbegin(); it != ps_[i].cend(); ++it) {
-        p_tmp_[it->first] = std::make_pair(it->second.translation(), it->second.rotation());
+        p_tmp_[it->first] =
+            std::make_pair(it->second.translation(), it->second.rotation());
       }
       ps_tmp_[i] = p_tmp_;
       for (auto it = pds_[i].cbegin(); it != pds_[i].cend(); ++it) {
@@ -125,7 +172,8 @@ class WholeBodyTrajectoryRosSubscriber {
       pds_tmp_[i] = pd_tmp_;
       for (auto it = fs_[i].cbegin(); it != fs_[i].cend(); ++it) {
         f_tmp_[it->first] =
-            std::make_tuple(std::get<0>(it->second).toVector(), std::get<1>(it->second), std::get<2>(it->second));
+            std::make_tuple(std::get<0>(it->second).toVector(),
+                            std::get<1>(it->second), std::get<2>(it->second));
       }
       fs_tmp_[i] = f_tmp_;
     }
@@ -140,53 +188,125 @@ class WholeBodyTrajectoryRosSubscriber {
    */
   bool has_new_msg() const { return has_new_msg_; }
 
- private:
+private:
 #ifdef ROS2
   std::shared_ptr<rclcpp::Node> node_;
   rclcpp::executors::SingleThreadedExecutor spinner_;
   std::thread thread_;
   void spin() { spinner_.spin(); }
-  rclcpp::Subscription<WholeBodyTrajectory>::SharedPtr sub_;  //!< ROS subscriber
+  rclcpp::Subscription<WholeBodyTrajectory>::SharedPtr sub_; //!< ROS subscriber
 #else
+  ros::NodeHandle node_;
   ros::AsyncSpinner spinner_;
-  ros::Subscriber sub_;  //!< ROS subscriber
+  ros::Subscriber sub_; //!< ROS subscriber
 #endif
-  std::mutex mutex_;                                           ///< Mutex to prevent race condition on callback
-  WholeBodyTrajectory msg_;                                    //!< ROS message
-  std::vector<double> ts_;                                     //!< Vector of time at the beginning of the interval
-  std::vector<Eigen::VectorXd> xs_;                            ///< Vector of states
-  std::vector<Eigen::VectorXd> us_;                            ///< Vector of joint efforts
-  std::vector<std::map<std::string, pinocchio::SE3>> ps_;      //!< Vector of contact positions
-  std::vector<std::map<std::string, pinocchio::Motion>> pds_;  //!< Vector of contact velocities
-  std::vector<std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>>>
-      fs_;  //!< Vector of contact forces, types and statuses
+  std::mutex mutex_;        ///< Mutex to prevent race condition on callback
+  WholeBodyTrajectory msg_; //!< ROS message
+  std::vector<double> ts_;  //!< Vector of time at the beginning of the interval
+  std::vector<Eigen::VectorXd> xs_; ///< Vector of states
+  std::vector<Eigen::VectorXd> us_; ///< Vector of joint efforts
+  std::vector<std::map<std::string, pinocchio::SE3>>
+      ps_; //!< Vector of contact positions
+  std::vector<std::map<std::string, pinocchio::Motion>>
+      pds_; //!< Vector of contact velocities
+  std::vector<std::map<
+      std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>>>
+      fs_; //!< Vector of contact forces, types and statuses
   std::vector<std::map<std::string, std::pair<Eigen::Vector3d, double>>>
-      ss_;                  //!< Vector of contact surfaces and friction coefficients
-  bool has_new_msg_;        //!< Indcate when a new message has been received
-  bool is_processing_msg_;  //!< Indicate when we are processing the message
+      ss_;           //!< Vector of contact surfaces and friction coefficients
+  bool has_new_msg_; //!< Indcate when a new message has been received
+  bool is_processing_msg_; //!< Indicate when we are processing the message
   double last_msg_time_;
   std::string odom_frame_;
   pinocchio::Model model_;
+  pinocchio::Model reduced_model_;
   pinocchio::Data data_;
-  Eigen::VectorXd a_null_;
+  Eigen::VectorXd a_;
+  Eigen::VectorXd
+      qref_; ///!< Reference configuration used in the reduced model (size nq)
+  std::vector<pinocchio::JointIndex> joint_ids_; ///!< List of locked joint Ids
+  Eigen::VectorXd qfull_; ///!< Full configuration vector (size nq)
+  Eigen::VectorXd vfull_; ///!< Full tangent vector (size nv)
+  Eigen::VectorXd ufull_; ///!< Full torque vector (size njoints)
+  bool is_reduced_model_; ///< True if we have reduced the model
   std::size_t nx_;
   std::size_t nu_;
   // TODO(cmastalli): Temporal variables as it is needed std container support
   // in Pinocchio
   std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>> p_tmp_;
   std::map<std::string, Eigen::VectorXd> pd_tmp_;
-  std::map<std::string, std::tuple<Eigen::VectorXd, ContactType, ContactStatus>> f_tmp_;
-  std::vector<std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>>> ps_tmp_;
+  std::map<std::string, std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>
+      f_tmp_;
+  std::vector<
+      std::map<std::string, std::pair<Eigen::Vector3d, Eigen::MatrixXd>>>
+      ps_tmp_;
   std::vector<std::map<std::string, Eigen::VectorXd>> pds_tmp_;
-  std::vector<std::map<std::string, std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>> fs_tmp_;
+  std::vector<std::map<std::string,
+                       std::tuple<Eigen::VectorXd, ContactType, ContactStatus>>>
+      fs_tmp_;
+
+  void init(const std::vector<std::string> &locked_joints = DEFAULT_VECTOR) {
+#ifdef ROS2
+    spinner_.add_node(node_);
+    thread_ = std::thread([this]() { this->spin(); });
+    thread_.detach();
+#else
+    spinner_.start();
+#endif
+
+    const std::size_t root_joint_id = getRootJointId(model_);
+    const std::size_t nv_root = model_.joints[root_joint_id].nv();
+    if (locked_joints.size() != 0) {
+      // Check the size of the reference configuration
+      if (qref_.size() != model_.nq) {
+#ifdef ROS2
+        RCLCPP_ERROR_STREAM(node_->get_logger(), "Invalid argument: qref has wrong dimension (it should be " << std::to_string(model_.nq) << ")");
+#else
+        ROS_ERROR_STREAM(
+            "Invalid argument: qref has wrong dimension (it should be "
+            << std::to_string(model_.nq) << ")");
+#endif
+      }
+      // Build the reduced model
+      for (std::string name : locked_joints) {
+        if (model_.existJointName(name)) {
+          joint_ids_.push_back(model_.getJointId(name));
+        } else {
+#ifdef ROS2
+          RCLCPP_ERROR_STREAM(node_->get_logger(),
+                              "Doesn't exist " << name << " joint");
+#else
+          ROS_ERROR_STREAM("Doesn't exist " << name << " joint");
+#endif
+        }
+      }
+      pinocchio::buildReducedModel(model_, joint_ids_, qref_, reduced_model_);
+
+      // Initialize the vectors and dimensions
+      qfull_ = Eigen::VectorXd::Zero(model_.nq);
+      vfull_ = Eigen::VectorXd::Zero(model_.nv);
+      ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
+      nx_ = reduced_model_.nq + reduced_model_.nv;
+      nu_ = reduced_model_.nv - nv_root;
+    } else {
+      // Initialize the vectors and dimensions
+      nx_ = model_.nq + model_.nv;
+      nu_ = model_.nv - nv_root;
+      is_reduced_model_ = false;
+    }
+    a_.setZero();
+  }
+
   void callback(WholeBodyTrajectorySharedPtr msg) {
     if (msg->header.frame_id != odom_frame_) {
 #ifdef ROS2
-      RCLCPP_ERROR_STREAM(node_->get_logger(), "Error: the whole-body trajectory is not expressed in "
-                                                   << odom_frame_ << " (i.e., 'odom_frame')");
+      RCLCPP_ERROR_STREAM(
+          node_->get_logger(),
+          "Error: the whole-body trajectory is not expressed in "
+              << odom_frame_ << " (i.e., 'odom_frame')");
 #else
-      ROS_ERROR_STREAM("Error: the whole-body trajectory is not expressed in " << odom_frame_
-                                                                               << " (i.e., 'odom_frame')");
+      ROS_ERROR_STREAM("Error: the whole-body trajectory is not expressed in "
+                       << odom_frame_ << " (i.e., 'odom_frame')");
 #endif
       return;
     }
@@ -205,17 +325,20 @@ class WholeBodyTrajectoryRosSubscriber {
         last_msg_time_ = t;
       } else {
 #ifdef ROS2
-        RCLCPP_WARN_STREAM(node_->get_logger(), "Out of order message. Last timestamp: "
-                                                    << std::fixed << last_msg_time_ << ", current timestamp: " << t);
+        RCLCPP_WARN_STREAM(node_->get_logger(),
+                           "Out of order message. Last timestamp: "
+                               << std::fixed << last_msg_time_
+                               << ", current timestamp: " << t);
 #else
-        ROS_WARN_STREAM("Out of order message. Last timestamp: " << std::fixed << last_msg_time_
-                                                                 << ", current timestamp: " << t);
+        ROS_WARN_STREAM("Out of order message. Last timestamp: "
+                        << std::fixed << last_msg_time_
+                        << ", current timestamp: " << t);
 #endif
       }
     }
   }
 };
 
-}  // namespace crocoddyl_msgs
+} // namespace crocoddyl_msgs
 
-#endif  // CROCODDYL_MSG_WHOLE_BODY_TRAJECTORY_SUBSCRIBER_H_
+#endif // CROCODDYL_MSG_WHOLE_BODY_TRAJECTORY_SUBSCRIBER_H_

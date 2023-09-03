@@ -14,11 +14,11 @@
 #include <Eigen/Dense>
 #include <mutex>
 #ifdef ROS2
-#include <rclcpp/rclcpp.hpp>
 #include "crocoddyl_msgs/msg/solver_trajectory.hpp"
+#include <rclcpp/rclcpp.hpp>
 #else
-#include <ros/node_handle.h>
 #include "crocoddyl_msgs/SolverTrajectory.h"
+#include <ros/node_handle.h>
 #endif
 
 namespace crocoddyl_msgs {
@@ -32,31 +32,33 @@ typedef const SolverTrajectory::ConstPtr &SolverTrajectorySharedPtr;
 #endif
 
 class SolverTrajectoryRosSubscriber {
- public:
+public:
   /**
    * @brief Initialize the solver trajectory subscriber
    *
    * @param[in] topic  Topic name
    * @param[in] frame  Odometry frame
    */
+  SolverTrajectoryRosSubscriber(
+      const std::string &topic = "/crocoddyl/solver_trajectory")
 #ifdef ROS2
-  SolverTrajectoryRosSubscriber(const std::string &topic = "/crocoddyl/solver_trajectory")
       : node_(rclcpp::Node::make_shared("solver_trajectory_subscriber")),
         sub_(node_->create_subscription<SolverTrajectory>(
-            topic, 1, std::bind(&SolverTrajectoryRosSubscriber::callback, this, std::placeholders::_1))),
-        has_new_msg_(false),
-        is_processing_msg_(false),
-        last_msg_time_(0.) {
+            topic, 1,
+            std::bind(&SolverTrajectoryRosSubscriber::callback, this,
+                      std::placeholders::_1))),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
     spinner_.add_node(node_);
     thread_ = std::thread([this]() { this->spin(); });
     thread_.detach();
-    RCLCPP_INFO_STREAM(node_->get_logger(), "Subscribing SolverTrajectory messages on " << topic);
+    RCLCPP_INFO_STREAM(node_->get_logger(),
+                       "Subscribing SolverTrajectory messages on " << topic);
 #else
-  SolverTrajectoryRosSubscriber(const std::string &topic = "/crocoddyl/solver_trajectory")
-      : spinner_(2), has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
-    ros::NodeHandle n;
-    sub_ = n.subscribe<SolverTrajectory>(topic, 1, &SolverTrajectoryRosSubscriber::callback, this,
-                                         ros::TransportHints().tcpNoDelay());
+      : node_(), spinner_(2),
+        sub_(node_.subscribe<SolverTrajectory>(
+            topic, 1, &SolverTrajectoryRosSubscriber::callback, this,
+            ros::TransportHints().tcpNoDelay())),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
     spinner_.start();
     ROS_INFO_STREAM("Subscribing SolverTrajectory messages on " << topic);
 #endif
@@ -70,8 +72,10 @@ class SolverTrajectoryRosSubscriber {
    * its durations, initial state, state's rate of change, feed-forward control,
    * feedback gain, type of control and control parametrization.
    */
-  std::tuple<std::vector<double>, std::vector<double>, std::vector<Eigen::VectorXd>, std::vector<Eigen::VectorXd>,
-             std::vector<Eigen::VectorXd>, std::vector<Eigen::MatrixXd>, std::vector<crocoddyl_msgs::ControlType>,
+  std::tuple<std::vector<double>, std::vector<double>,
+             std::vector<Eigen::VectorXd>, std::vector<Eigen::VectorXd>,
+             std::vector<Eigen::VectorXd>, std::vector<Eigen::MatrixXd>,
+             std::vector<crocoddyl_msgs::ControlType>,
              std::vector<crocoddyl_msgs::ControlParametrization>>
   get_solver_trajectory() {
     // start processing the message
@@ -83,7 +87,8 @@ class SolverTrajectoryRosSubscriber {
           "The size of the state trajectory vector needs to equal "
           "the size of the intervals vector.");
     }
-    if (msg_.control_trajectory.size() != 0 && msg_.control_trajectory.size() != N) {
+    if (msg_.control_trajectory.size() != 0 &&
+        msg_.control_trajectory.size() != N) {
       throw std::invalid_argument(
           "The size of the control trajectory vector needs to equal "
           "the size of the intervals vector.");
@@ -120,23 +125,24 @@ class SolverTrajectoryRosSubscriber {
    */
   bool has_new_msg() const { return has_new_msg_; }
 
- private:
+private:
 #ifdef ROS2
   std::shared_ptr<rclcpp::Node> node_;
   rclcpp::executors::SingleThreadedExecutor spinner_;
   std::thread thread_;
   void spin() { spinner_.spin(); }
-  rclcpp::Subscription<SolverTrajectory>::SharedPtr sub_;  //!< ROS subscriber
+  rclcpp::Subscription<SolverTrajectory>::SharedPtr sub_; //!< ROS subscriber
 #else
+  ros::NodeHandle node_;
   ros::AsyncSpinner spinner_;
-  ros::Subscriber sub_;  //!< ROS subscriber
+  ros::Subscriber sub_; //!< ROS subscriber
 #endif
-  std::mutex mutex_;        //!< Mutex to prevent race condition on callback
-  SolverTrajectory msg_;    //!< Solver trajectory message
-  bool has_new_msg_;        //!< Indcate when a new message has been received
-  bool is_processing_msg_;  //!< Indicate when we are processing the message
-  double last_msg_time_;    //!< Last message time needed to ensure each message is
-                            //!< newer
+  std::mutex mutex_;       //!< Mutex to prevent race condition on callback
+  SolverTrajectory msg_;   //!< Solver trajectory message
+  bool has_new_msg_;       //!< Indcate when a new message has been received
+  bool is_processing_msg_; //!< Indicate when we are processing the message
+  double last_msg_time_; //!< Last message time needed to ensure each message is
+                         //!< newer
   std::vector<double> ts_;
   std::vector<double> dts_;
   std::vector<Eigen::VectorXd> xs_;
@@ -145,6 +151,7 @@ class SolverTrajectoryRosSubscriber {
   std::vector<Eigen::MatrixXd> Ks_;
   std::vector<crocoddyl_msgs::ControlType> types_;
   std::vector<crocoddyl_msgs::ControlParametrization> params_;
+
   void callback(SolverTrajectorySharedPtr msg) {
     if (!is_processing_msg_) {
 #ifdef ROS2
@@ -161,17 +168,20 @@ class SolverTrajectoryRosSubscriber {
         last_msg_time_ = t;
       } else {
 #ifdef ROS2
-        RCLCPP_WARN_STREAM(node_->get_logger(), "Out of order message. Last timestamp: "
-                                                    << std::fixed << last_msg_time_ << ", current timestamp: " << t);
+        RCLCPP_WARN_STREAM(node_->get_logger(),
+                           "Out of order message. Last timestamp: "
+                               << std::fixed << last_msg_time_
+                               << ", current timestamp: " << t);
 #else
-        ROS_WARN_STREAM("Out of order message. Last timestamp: " << std::fixed << last_msg_time_
-                                                                 << ", current timestamp: " << t);
+        ROS_WARN_STREAM("Out of order message. Last timestamp: "
+                        << std::fixed << last_msg_time_
+                        << ", current timestamp: " << t);
 #endif
       }
     }
   }
 };
 
-}  // namespace crocoddyl_msgs
+} // namespace crocoddyl_msgs
 
-#endif  // CROCODDYL_MSG_SOLVER_TRAJECTORY_SUBSCRIBER_H_
+#endif // CROCODDYL_MSG_SOLVER_TRAJECTORY_SUBSCRIBER_H_

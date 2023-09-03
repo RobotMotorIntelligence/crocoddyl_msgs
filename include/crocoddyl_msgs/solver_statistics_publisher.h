@@ -12,8 +12,8 @@
 #include <realtime_tools/realtime_publisher.h>
 
 #ifdef ROS2
-#include <rclcpp/rclcpp.hpp>
 #include "crocoddyl_msgs/msg/solver_statistics.hpp"
+#include <rclcpp/rclcpp.hpp>
 #else
 #include "crocoddyl_msgs/SolverStatistics.h"
 #endif
@@ -21,19 +21,22 @@
 namespace crocoddyl_msgs {
 
 class SolverStatisticsRosPublisher {
- public:
+public:
   /**
    * @brief Initialize the solver statistic publisher
    *
    * @param[in] topic  Topic name
    */
+  SolverStatisticsRosPublisher(
+      const std::string &topic = "/crocoddyl/solver_statistics")
 #ifdef ROS2
-  SolverStatisticsRosPublisher(const std::string &topic = "/crocoddyl/solver_statistics")
       : node_("solver_statistics_publisher"),
-        pub_(node_.create_publisher<crocoddyl_msgs::msg::SolverStatistics>(topic, 1)) {
-    RCLCPP_INFO_STREAM(node_.get_logger(), "Publishing SolverStatistics messages on " << topic);
+        pub_(node_.create_publisher<crocoddyl_msgs::msg::SolverStatistics>(
+            topic, 1)) {
+    RCLCPP_INFO_STREAM(node_.get_logger(),
+                       "Publishing SolverStatistics messages on " << topic);
 #else
-  SolverStatisticsRosPublisher(const std::string &topic = "/crocoddyl/solver_statistics") {
+  {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
     ROS_INFO_STREAM("Publishing SolverStatistics messages on " << topic);
@@ -54,8 +57,10 @@ class SolverStatisticsRosPublisher {
    * @param equafeas[in]        Equality constraints feasibility
    * @param ineqfeas[in]        Inequality constraints feasibility
    */
-  void publish(const std::size_t iterations, const double totaltime, const double solvetime, const double cost,
-               const double regularization, const double steplength, const double dynfeas, const double equafeas,
+  void publish(const std::size_t iterations, const double totaltime,
+               const double solvetime, const double cost,
+               const double regularization, const double steplength,
+               const double dynfeas, const double equafeas,
                const double ineqfeas) {
     if (pub_.trylock()) {
 #ifdef ROS2
@@ -76,7 +81,7 @@ class SolverStatisticsRosPublisher {
     }
   }
 
- private:
+private:
 #ifdef ROS2
   rclcpp::Node node_;
   realtime_tools::RealtimePublisher<crocoddyl_msgs::msg::SolverStatistics> pub_;
@@ -85,6 +90,6 @@ class SolverStatisticsRosPublisher {
 #endif
 };
 
-}  // namespace crocoddyl_msgs
+} // namespace crocoddyl_msgs
 
-#endif  // CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_
+#endif // CROCODDYL_MSG_SOLVER_STATISTICS_PUBLISHER_H_
