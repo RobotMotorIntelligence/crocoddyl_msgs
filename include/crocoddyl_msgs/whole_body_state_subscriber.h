@@ -256,6 +256,7 @@ private:
       ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
     } else {
       tau_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
+      is_reduced_model_ = false;
     }
     q_.setZero();
     v_.setZero();

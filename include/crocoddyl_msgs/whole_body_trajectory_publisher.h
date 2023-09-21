@@ -233,6 +233,8 @@ private:
       qfull_ = Eigen::VectorXd::Zero(model_.nq);
       vfull_ = Eigen::VectorXd::Zero(model_.nv);
       ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
+    } else {
+      is_reduced_model_ = false;
     }
   }
 };
