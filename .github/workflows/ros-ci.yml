@@ -1,4 +1,4 @@
-name: ROS-CI
+name: ROS
 on: [push, pull_request]
 
 jobs:
@@ -6,11 +6,13 @@ jobs:
     strategy:
       matrix:
         env:
-          - {ROS_DISTRO: noetic, PRERELEASE: true}
-          - {ROS_DISTRO: humble}
-          - {ROS_DISTRO: rolling}
+          - {name: "(noetic)", ROS_DISTRO: noetic, PRERELEASE: true}
+          - {name: "(humble)", ROS_DISTRO: humble}
+          - {name: "(rolling)", ROS_DISTRO: rolling}
+    name: ${{ matrix.env.name }}
     env:
       UPSTREAM_WORKSPACE: dependencies.rosinstall
+      CTEST_OUTPUT_ON_FAILURE: 1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
