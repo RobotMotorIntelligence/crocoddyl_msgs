@@ -7,11 +7,11 @@ jobs:
       fail-fast: false
       matrix:
         env:
-          - {name: "(noetic)", ROS_DISTRO: noetic, PRERELEASE: true}
+          - {name: "(noetic)", ROS_DISTRO: noetic, BUILDER: catkin_tools}
           - {name: "(humble)", ROS_DISTRO: humble}
           - {name: "(rolling)", ROS_DISTRO: rolling}
           - {name: "(iron)", ROS_DISTRO: iron}
-          - {name: "(noetic, Debug)", ROS_DISTRO: noetic, CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug"}
+          - {name: "(noetic, Debug)", ROS_DISTRO: noetic, BUILDER: catkin_tools, CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug"}
           - {name: "(humble, Debug)", ROS_DISTRO: humble, CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug"}
           - {name: "(rolling, Debug)", ROS_DISTRO: rolling, CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug"}
           - {name: "(iron, Debug)", ROS_DISTRO: iron, CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug"}
