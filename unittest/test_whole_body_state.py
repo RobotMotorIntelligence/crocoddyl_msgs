@@ -35,7 +35,8 @@ from crocoddyl_ros import (
 class TestWholeBodyState(unittest.TestCase):
     def setUp(self):
         if ROS_VERSION == 2:
-            rclpy.init()
+            if not rclpy.ok():
+                rclpy.init()
         else:
             rospy.init_node("crocoddyl_ros", anonymous=True)
         # Create random state
@@ -137,9 +138,9 @@ class TestWholeBodyState(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyStateRosSubscriber(
-            model, locked_joints, qref, "whole_body_state"
+            model, locked_joints, qref, "reduced_whole_body_state"
         )
-        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "whole_body_state")
+        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "reduced_whole_body_state")
         time.sleep(1)
         # publish whole-body state messages
         q = pinocchio.randomConfiguration(model)
@@ -195,9 +196,9 @@ class TestWholeBodyState(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyStateRosSubscriber(
-            model, locked_joints, qref, "whole_body_state"
+            model, locked_joints, qref, "non_locked_whole_body_state"
         )
-        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "whole_body_state")
+        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "non_locked_whole_body_state")
         time.sleep(1)
         # publish whole-body state messages
         q = pinocchio.randomConfiguration(model)

@@ -19,7 +19,7 @@ message(STATUS "Released under the BSD 3-Clause License.")
 
 # Find required packages
 find_package(Eigen3 REQUIRED)
-find_package(pinocchio REQUIRED)
+find_package(pinocchio 2.6.18 REQUIRED)
 
 # Define the Python modules
 set(${PROJECT_NAME}_PYBIND11_MODULE crocoddyl_ros)

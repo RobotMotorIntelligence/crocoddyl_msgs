@@ -35,7 +35,8 @@ from crocoddyl_ros import (
 class TestWholeBodyTrajectory(unittest.TestCase):
     def setUp(self) -> None:
         if ROS_VERSION == 2:
-            rclpy.init()
+            if not rclpy.ok():
+                rclpy.init()
         else:
             rospy.init_node("crocoddyl_ros", anonymous=True)
         # Create random trajectories
@@ -161,10 +162,10 @@ class TestWholeBodyTrajectory(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyTrajectoryRosSubscriber(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "reduced_whole_body_trajectory"
         )
         pub = WholeBodyTrajectoryRosPublisher(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "reduced_whole_body_trajectory"
         )
         time.sleep(1)
         # publish whole-body trajectory messages
@@ -234,10 +235,10 @@ class TestWholeBodyTrajectory(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyTrajectoryRosSubscriber(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "non_locked_whole_body_trajectory"
         )
         pub = WholeBodyTrajectoryRosPublisher(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "non_locked_whole_body_trajectory"
         )
         time.sleep(1)
         # publish whole-body trajectory messages
