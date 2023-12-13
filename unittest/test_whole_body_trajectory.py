@@ -35,7 +35,8 @@ from crocoddyl_ros import (
 class TestWholeBodyTrajectory(unittest.TestCase):
     def setUp(self) -> None:
         if ROS_VERSION == 2:
-            rclpy.init()
+            if not rclpy.ok():
+                rclpy.init()
         else:
             rospy.init_node("crocoddyl_ros", anonymous=True)
         # Create random trajectories
