@@ -138,9 +138,9 @@ class TestWholeBodyState(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyStateRosSubscriber(
-            model, locked_joints, qref, "whole_body_state"
+            model, locked_joints, qref, "reduced_whole_body_state"
         )
-        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "whole_body_state")
+        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "reduced_whole_body_state")
         time.sleep(1)
         # publish whole-body state messages
         q = pinocchio.randomConfiguration(model)
@@ -196,9 +196,9 @@ class TestWholeBodyState(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyStateRosSubscriber(
-            model, locked_joints, qref, "whole_body_state"
+            model, locked_joints, qref, "non_locked_whole_body_state"
         )
-        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "whole_body_state")
+        pub = WholeBodyStateRosPublisher(model, locked_joints, qref, "non_locked_whole_body_state")
         time.sleep(1)
         # publish whole-body state messages
         q = pinocchio.randomConfiguration(model)

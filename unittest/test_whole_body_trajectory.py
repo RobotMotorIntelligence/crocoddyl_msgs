@@ -162,10 +162,10 @@ class TestWholeBodyTrajectory(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyTrajectoryRosSubscriber(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "reduced_whole_body_trajectory"
         )
         pub = WholeBodyTrajectoryRosPublisher(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "reduced_whole_body_trajectory"
         )
         time.sleep(1)
         # publish whole-body trajectory messages
@@ -235,10 +235,10 @@ class TestWholeBodyTrajectory(unittest.TestCase):
             model, [model.getJointId(name) for name in locked_joints], qref
         )
         sub = WholeBodyTrajectoryRosSubscriber(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "non_locked_whole_body_trajectory"
         )
         pub = WholeBodyTrajectoryRosPublisher(
-            model, locked_joints, qref, "whole_body_trajectory"
+            model, locked_joints, qref, "non_locked_whole_body_trajectory"
         )
         time.sleep(1)
         # publish whole-body trajectory messages
