@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (C) 2023-2023, Heriot-Watt University
+// Copyright (C) 2023-2024, Heriot-Watt University
 // Copyright note valid unless otherwise stated in individual files.
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,7 +169,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param f: contact force, type and status\n"
            ":param s: contact surface and friction coefficient",
            py::arg("t"), py::arg("q"), py::arg("v"), py::arg("tau"),
-           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"));
+           py::arg("p") = DEFAULT_SE3, py::arg("pd") = DEFAULT_MOTION, py::arg("f") = DEFAULT_FORCE, py::arg("s") = DEFAULT_FRICTION);
 
   py::class_<WholeBodyStateRosSubscriber,
              std::unique_ptr<WholeBodyStateRosSubscriber, py::nodelete>>(
@@ -218,8 +218,8 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param pds: list of contact velocities\n"
            ":param fs: list of contact forces, types and statuses\n"
            ":param ss: list of contact surfaces and friction coefficients",
-           py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps"),
-           py::arg("pds"), py::arg("fs"), py::arg("ss"));
+           py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps") = DEFAULT_SE3_VECTOR,
+           py::arg("pds") = DEFAULT_MOTION_VECTOR, py::arg("fs") = DEFAULT_FORCE_VECTOR, py::arg("ss") = DEFAULT_FRICTION_VECTOR);
 
   py::class_<WholeBodyTrajectoryRosSubscriber,
              std::unique_ptr<WholeBodyTrajectoryRosSubscriber, py::nodelete>>(

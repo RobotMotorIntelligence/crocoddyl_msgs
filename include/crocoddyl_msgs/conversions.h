@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (C) 2020-2023, Heriot-Watt University, University of Oxford
+// Copyright (C) 2020-2024, Heriot-Watt University, University of Oxford
 // Copyright note valid unless otherwise stated in individual files.
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
@@ -180,10 +180,6 @@ static inline void toMsg(Control &msg,
  * @param v[in]      Generalized velocity (dimension: model.nv)
  * @param a[in]      Generalized acceleration (dimension: model.nv)
  * @param tau[in]    Joint effort
- * @param p[in]      Contact position
- * @param pd[in]     Contact velocity
- * @param f[in]      Contact force, type and status
- * @param s[in]      Contact surface and friction coefficient
  */
 template <int Options, template <typename, int> class JointCollectionTpl>
 static inline void toMsg(
@@ -193,12 +189,7 @@ static inline void toMsg(
     const Eigen::Ref<const Eigen::VectorXd> &q,
     const Eigen::Ref<const Eigen::VectorXd> &v,
     const Eigen::Ref<const Eigen::VectorXd> &a,
-    const Eigen::Ref<const Eigen::VectorXd> &tau,
-    const std::map<std::string, pinocchio::SE3> &p,
-    const std::map<std::string, pinocchio::Motion> &pd,
-    const std::map<std::string,
-                   std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
-    const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+    const Eigen::Ref<const Eigen::VectorXd> &tau) {
   if (q.size() != model.nq) {
     throw std::invalid_argument("Expected q to be " + std::to_string(model.nq) +
                                 " but received " + std::to_string(q.size()));
@@ -218,18 +209,6 @@ static inline void toMsg(
     throw std::invalid_argument("Expected tau to be 0 or " +
                                 std::to_string(njoints) + " but received " +
                                 std::to_string(tau.size()));
-  }
-  if (p.size() != pd.size()) {
-    throw std::invalid_argument(
-        "Dimension of contact pose and velocity does not match.");
-  }
-  if (p.size() != f.size()) {
-    throw std::invalid_argument(
-        "Dimension of contact pose and force does not match.");
-  }
-  if (p.size() != s.size()) {
-    throw std::invalid_argument(
-        "Dimension of contact pose and surface does not match.");
   }
   // Filling the time information
   msg.time = t;
@@ -287,8 +266,55 @@ static inline void toMsg(
     msg.joints[j].position = q(model.joints[1].nq() + j);
     msg.joints[j].velocity = v(model.joints[1].nv() + j);
     msg.joints[j].acceleration = a(model.joints[1].nv() + j);
-    msg.joints[j].effort = tau(j);
+    if (tau.size() != 0) {
+      msg.joints[j].effort = tau(j);
+    }
   }
+}
+
+/**
+ * @brief Conversion from vectors to `whole_body_state_msgs::WholeBodyState`
+ *
+ * @param model[in]  Pinocchio model
+ * @param data[out]  Pinocchio data
+ * @param msg[out]   ROS message that contains the whole-body state
+ * @param t[in]      Time in secs
+ * @param q[in]      Configuration vector (dimension: model.nq)
+ * @param v[in]      Generalized velocity (dimension: model.nv)
+ * @param a[in]      Generalized acceleration (dimension: model.nv)
+ * @param tau[in]    Joint effort
+ * @param p[in]      Contact position
+ * @param pd[in]     Contact velocity
+ * @param f[in]      Contact force, type and status
+ * @param s[in]      Contact surface and friction coefficient
+ */
+template <int Options, template <typename, int> class JointCollectionTpl>
+static inline void toMsg(
+    const pinocchio::ModelTpl<double, Options, JointCollectionTpl> &model,
+    pinocchio::DataTpl<double, Options, JointCollectionTpl> &data,
+    WholeBodyState &msg, const double t,
+    const Eigen::Ref<const Eigen::VectorXd> &q,
+    const Eigen::Ref<const Eigen::VectorXd> &v,
+    const Eigen::Ref<const Eigen::VectorXd> &a,
+    const Eigen::Ref<const Eigen::VectorXd> &tau,
+    const std::map<std::string, pinocchio::SE3> &p,
+    const std::map<std::string, pinocchio::Motion> &pd,
+    const std::map<std::string,
+                   std::tuple<pinocchio::Force, ContactType, ContactStatus>> &f,
+    const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+  if (p.size() != pd.size()) {
+    throw std::invalid_argument(
+        "Dimension of contact pose and velocity does not match.");
+  }
+  if (p.size() != f.size()) {
+    throw std::invalid_argument(
+        "Dimension of contact pose and force does not match.");
+  }
+  if (p.size() != s.size()) {
+    throw std::invalid_argument(
+        "Dimension of contact pose and surface does not match.");
+  }
+  toMsg(model, data, msg, t, q, v, a, tau);
   // Contacts
   msg.contacts.resize(p.size());
   std::size_t i = 0;
