@@ -3,7 +3,7 @@
 ###############################################################################
 # BSD 3-Clause License
 #
-# Copyright (C) 2023-2023, Heriot-Watt University
+# Copyright (C) 2023-2024, Heriot-Watt University
 # Copyright note valid unless otherwise stated in individual files.
 # All rights reserved.
 ###############################################################################
@@ -79,6 +79,21 @@ class TestWholeBodyState(unittest.TestCase):
             "lleg_effector_body": [np.random.rand(3), random.uniform(0, 1)],
             "rleg_effector_body": [np.random.rand(3), random.uniform(0, 1)],
         }
+
+    def test_publisher_without_contact(self):
+        model = pinocchio.buildSampleModelHumanoid()
+        sub = WholeBodyStateRosSubscriber(model, "whole_body_state")
+        pub = WholeBodyStateRosPublisher(model, "whole_body_state")
+        time.sleep(1)
+        # publish whole-body state messages
+        q = pinocchio.randomConfiguration(model)
+        q[:3] = np.random.rand(3)
+        v = np.random.rand(model.nv)
+        tau = np.random.rand(model.nv - 6)
+        while True:
+            pub.publish(self.t, q, v, tau)
+            if sub.has_new_msg():
+                break
 
     def test_communication(self):
         model = pinocchio.buildSampleModelHumanoid()
