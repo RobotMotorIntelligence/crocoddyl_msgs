@@ -94,8 +94,8 @@ class TestWholeBodyTrajectory(unittest.TestCase):
 
     def test_publisher_without_contact(self):
         model = pinocchio.buildSampleModelHumanoid()
-        sub = WholeBodyTrajectoryRosSubscriber(model, "whole_body_trajectory")
-        pub = WholeBodyTrajectoryRosPublisher(model, "whole_body_trajectory")
+        sub = WholeBodyTrajectoryRosSubscriber(model, "whole_body_trajectory_without_contact")
+        pub = WholeBodyTrajectoryRosPublisher(model, "whole_body_trajectory_without_contact")
         time.sleep(1)
         # publish whole-body trajectory messages
         N = len(self.ts)
@@ -110,6 +110,14 @@ class TestWholeBodyTrajectory(unittest.TestCase):
             pub.publish(self.ts, xs, us)
             if sub.has_new_msg():
                 break
+        # get whole-body trajectory
+        _ts, _xs, _us, _, _, _, _ = sub.get_trajectory()
+        for i in range(N):
+            self.assertEqual(self.ts[i], _ts[i], "Wrong time interval at " + str(i))
+            self.assertTrue(
+                np.allclose(xs[i], _xs[i], atol=1e-9), "Wrong x at " + str(i)
+            )
+            self.assertTrue(np.allclose(us, _us, atol=1e-9), "Wrong u at " + str(i))
 
     def test_communication(self):
         model = pinocchio.buildSampleModelHumanoid()

@@ -82,8 +82,8 @@ class TestWholeBodyState(unittest.TestCase):
 
     def test_publisher_without_contact(self):
         model = pinocchio.buildSampleModelHumanoid()
-        sub = WholeBodyStateRosSubscriber(model, "whole_body_state")
-        pub = WholeBodyStateRosPublisher(model, "whole_body_state")
+        sub = WholeBodyStateRosSubscriber(model, "whole_body_state_without_contact")
+        pub = WholeBodyStateRosPublisher(model, "whole_body_state_without_contact")
         time.sleep(1)
         # publish whole-body state messages
         q = pinocchio.randomConfiguration(model)
@@ -94,6 +94,12 @@ class TestWholeBodyState(unittest.TestCase):
             pub.publish(self.t, q, v, tau)
             if sub.has_new_msg():
                 break
+        # get whole-body state
+        _t, _q, _v, _tau, _, _, _, _ = sub.get_state()
+        self.assertEqual(self.t, _t, "Wrong time interval")
+        self.assertTrue(np.allclose(q, _q, atol=1e-9), "Wrong q")
+        self.assertTrue(np.allclose(v, _v, atol=1e-9), "Wrong v")
+        self.assertTrue(np.allclose(tau, _tau, atol=1e-9), "Wrong tau")
 
     def test_communication(self):
         model = pinocchio.buildSampleModelHumanoid()
