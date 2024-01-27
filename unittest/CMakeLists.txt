@@ -1,14 +1,12 @@
-if(CATKIN_ENABLE_TESTING)
-  set(${PROJECT_NAME}_PYTHON_TESTS solver_statistics solver_trajectory)
+set(${PROJECT_NAME}_PYTHON_TESTS solver_statistics solver_trajectory
+                                 whole_body_state whole_body_trajectory)
 
+if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   foreach(TEST ${${PROJECT_NAME}_PYTHON_TESTS})
     add_rostest(crocoddyl_msgs.test ARGS test_name:=${TEST})
   endforeach(TEST ${${PROJECT_NAME}_PYTHON_TESTS})
 else() # ROS2
-  set(${PROJECT_NAME}_PYTHON_TESTS solver_statistics solver_trajectory
-                                   whole_body_state whole_body_trajectory)
-
   foreach(TEST ${${PROJECT_NAME}_PYTHON_TESTS})
     add_test(NAME "test_${TEST}"
              COMMAND ${PYTHON_EXECUTABLE}
