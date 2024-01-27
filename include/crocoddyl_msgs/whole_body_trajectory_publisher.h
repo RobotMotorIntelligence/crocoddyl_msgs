@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (C) 2023-2023, Heriot-Watt University
+// Copyright (C) 2023-2024, Heriot-Watt University
 // Copyright note valid unless otherwise stated in individual files.
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
@@ -126,25 +126,27 @@ public:
             "If provided, the size of the us vector needs to equal the size of "
             "the ts vector.");
       }
-      if (ts.size() != ps.size()) {
-        throw std::invalid_argument(
-            "If provided, the size of the ps vector needs to equal the size of "
-            "the ts vector.");
-      }
-      if (ts.size() != pds.size()) {
-        throw std::invalid_argument("If provided, the size of the pds vector "
-                                    "needs to equal the size of "
-                                    "the ts vector.");
-      }
-      if (ts.size() != fs.size()) {
-        throw std::invalid_argument(
-            "If provided, the size of the fs vector needs to equal the size of "
-            "the ts vector.");
-      }
-      if (ts.size() != ss.size()) {
-        throw std::invalid_argument(
-            "If provided, the size of the ss vector needs to equal the size of "
-            "the ts vector.");
+      if (ps.size() != 0) {
+        if (ts.size() != ps.size()) {
+          throw std::invalid_argument(
+              "If provided, the size of the ps vector needs to equal the size of "
+              "the ts vector.");
+        }
+        if (ts.size() != pds.size()) {
+          throw std::invalid_argument("If provided, the size of the pds vector "
+                                      "needs to equal the size of "
+                                      "the ts vector.");
+        }
+        if (ts.size() != fs.size()) {
+          throw std::invalid_argument(
+              "If provided, the size of the fs vector needs to equal the size of "
+              "the ts vector.");
+        }
+        if (ts.size() != ss.size()) {
+          throw std::invalid_argument(
+              "If provided, the size of the ss vector needs to equal the size of "
+              "the ts vector.");
+        }
       }
       pub_.msg_.header.frame_id = odom_frame_;
 #ifdef ROS2
@@ -159,13 +161,24 @@ public:
           fromReduced(model_, reduced_model_, qfull_, vfull_, ufull_,
                       xs[i].head(reduced_model_.nq),
                       xs[i].tail(reduced_model_.nv), us[i], qref_, joint_ids_);
-          crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i],
-                                ts[i], qfull_, vfull_, a_, ufull_, ps[i],
-                                pds[i], fs[i], ss[i]);
+          if (ps.size() != 0) {
+            crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i],
+                                  ts[i], qfull_, vfull_, a_, ufull_, ps[i],
+                                  pds[i], fs[i], ss[i]);
+          } else {
+            crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i],
+                                  ts[i], qfull_, vfull_, a_, ufull_);            
+          }
         } else {
-          crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i],
-                                xs[i].head(model_.nq), xs[i].tail(model_.nv),
-                                a_, us[i], ps[i], pds[i], fs[i], ss[i]);
+          if (ps.size() != 0) {
+            crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i],
+                                  xs[i].head(model_.nq), xs[i].tail(model_.nv),
+                                  a_, us[i], ps[i], pds[i], fs[i], ss[i]);
+          } else {
+            crocoddyl_msgs::toMsg(model_, data_, pub_.msg_.trajectory[i], ts[i],
+                                  xs[i].head(model_.nq), xs[i].tail(model_.nv),
+                                  a_, us[i]);
+          }
         }
       }
       pub_.unlockAndPublish();
