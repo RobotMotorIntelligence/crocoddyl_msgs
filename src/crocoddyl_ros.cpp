@@ -218,8 +218,8 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param pds: list of contact velocities\n"
            ":param fs: list of contact forces, types and statuses\n"
            ":param ss: list of contact surfaces and friction coefficients",
-           py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps"),
-           py::arg("pds"), py::arg("fs"), py::arg("ss"));
+           py::arg("ts"), py::arg("xs"), py::arg("us"), py::arg("ps") = DEFAULT_SE3_VECTOR,
+           py::arg("pds") = DEFAULT_MOTION_VECTOR, py::arg("fs") = DEFAULT_FORCE_VECTOR, py::arg("ss") = DEFAULT_FRICTION_VECTOR);
 
   py::class_<WholeBodyTrajectoryRosSubscriber,
              std::unique_ptr<WholeBodyTrajectoryRosSubscriber, py::nodelete>>(
