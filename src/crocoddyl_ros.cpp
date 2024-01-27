@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (C) 2023-2023, Heriot-Watt University
+// Copyright (C) 2023-2024, Heriot-Watt University
 // Copyright note valid unless otherwise stated in individual files.
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
@@ -169,7 +169,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param f: contact force, type and status\n"
            ":param s: contact surface and friction coefficient",
            py::arg("t"), py::arg("q"), py::arg("v"), py::arg("tau"),
-           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"));
+           py::arg("p") = DEFAULT_SE3, py::arg("pd") = DEFAULT_MOTION, py::arg("f") = DEFAULT_FORCE, py::arg("s") = DEFAULT_FRICTION);
 
   py::class_<WholeBodyStateRosSubscriber,
              std::unique_ptr<WholeBodyStateRosSubscriber, py::nodelete>>(

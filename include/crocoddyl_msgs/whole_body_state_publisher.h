@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // BSD 3-Clause License
 //
-// Copyright (C) 2023-2023, Heriot-Watt University
+// Copyright (C) 2023-2024, Heriot-Watt University
 // Copyright note valid unless otherwise stated in individual files.
 // All rights reserved.
 ///////////////////////////////////////////////////////////////////////////////
@@ -20,6 +20,15 @@
 #endif
 
 namespace crocoddyl_msgs {
+
+static std::map<std::string, pinocchio::SE3> DEFAULT_SE3;
+
+static std::map<std::string, pinocchio::Motion> DEFAULT_MOTION;
+
+static std::map<std::string, std::tuple<pinocchio::Force, ContactType,
+                                                 ContactStatus>> DEFAULT_FORCE;
+
+static std::map<std::string, std::pair<Eigen::Vector3d, double>> DEFAULT_FRICTION;
 
 class WholeBodyStateRosPublisher {
 public:
@@ -108,11 +117,11 @@ public:
   publish(const double t, const Eigen::Ref<const Eigen::VectorXd> &q,
           const Eigen::Ref<const Eigen::VectorXd> &v,
           const Eigen::Ref<const Eigen::VectorXd> &tau,
-          const std::map<std::string, pinocchio::SE3> &p,
-          const std::map<std::string, pinocchio::Motion> &pd,
+          const std::map<std::string, pinocchio::SE3> &p = DEFAULT_SE3,
+          const std::map<std::string, pinocchio::Motion> &pd = DEFAULT_MOTION,
           const std::map<std::string, std::tuple<pinocchio::Force, ContactType,
-                                                 ContactStatus>> &f,
-          const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+                                                 ContactStatus>> &f = DEFAULT_FORCE,
+          const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s = DEFAULT_FRICTION) {
     if (pub_.trylock()) {
       pub_.msg_.header.frame_id = odom_frame_;
       if (is_reduced_model_) {
