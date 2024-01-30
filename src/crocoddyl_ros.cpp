@@ -32,6 +32,8 @@
 #include "crocoddyl_msgs/whole_body_state_subscriber.h"
 #include "crocoddyl_msgs/whole_body_trajectory_publisher.h"
 #include "crocoddyl_msgs/whole_body_trajectory_subscriber.h"
+#include "crocoddyl_msgs/inertial_parameters_publisher.h"
+#include "crocoddyl_msgs/inertial_parameters_subscriber.h"
 
 PYBIND11_MODULE(crocoddyl_ros, m) {
   namespace py = pybind11;
@@ -264,6 +266,28 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "friction\n"
            "coefficients.")
       .def("has_new_msg", &WholeBodyTrajectoryRosSubscriber::has_new_msg);
+  
+  py::class_<MultibodyInertialParametersRosPublisher,
+             std::unique_ptr<MultibodyInertialParametersRosPublisher, py::nodelete>>(
+      m, "MultibodyInertialParametersRosPublisher")
+      .def(py::init<const unsigned int &, const std::string &>(),
+           py::arg("n_bodies"),
+           py::arg("topic") = "/robot/multibody_inertial_parameters")
+      .def("publish", &MultibodyInertialParametersRosPublisher::publish,
+           "Publish a whole-body state ROS message.\n\n"
+           ":param parameters: multibody inertial parameters",
+           py::arg("parameters"));
+
+  py::class_<MultibodyInertialParametersRosSubscriber,
+             std::unique_ptr<MultibodyInertialParametersRosSubscriber, py::nodelete>>(
+      m, "MultibodyInertialParametersRosSubscriber")
+      .def(py::init<const unsigned int &, const std::string &>(),
+           py::arg("n_bodies"),
+           py::arg("topic") = "/robot/multibody_inertial_parameters")
+      .def("get_inertial_parameters", &MultibodyInertialParametersRosSubscriber::get_inertial_parameters,
+           "Get the latest inertial parameters.\n\n"
+           ":return: dictionary of body names and inertial parameters pair\n")
+      .def("has_new_msg", &MultibodyInertialParametersRosSubscriber::has_new_msg);
 
   m.def("getRootJointId", &getRootJointId<0, pinocchio::JointCollectionDefaultTpl>,
            "Return the root joint id.\n\n"

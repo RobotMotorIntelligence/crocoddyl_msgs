@@ -167,6 +167,15 @@ public:
       pub_.unlockAndPublish();
     }
   }
+  
+  /**
+   * @brief Returns a pointer to the pinocchio model
+   *
+   * @return pointer to the pinocchio model
+   */
+  pinocchio::Model* get_pinocchio_model(){
+    return &model_;
+  }
 
 private:
 #ifdef ROS2

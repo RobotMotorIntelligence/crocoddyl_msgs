@@ -1,5 +1,5 @@
 if(CATKIN_ENABLE_TESTING)
-  set(${PROJECT_NAME}_PYTHON_TESTS solver_statistics solver_trajectory)
+  set(${PROJECT_NAME}_PYTHON_TESTS solver_statistics solver_trajectory inertial_parameters)
 
   find_package(rostest REQUIRED)
   foreach(TEST ${${PROJECT_NAME}_PYTHON_TESTS})
