@@ -7,4 +7,6 @@
 # The header specifies the time at which the state is published.
 
 Header header
+
+# The inertia of multiple bodies
 crocoddyl_msgs/InertialParameters[] parameters
