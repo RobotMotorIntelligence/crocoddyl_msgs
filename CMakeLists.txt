@@ -13,7 +13,7 @@ set(PROJECT_VERSION 1.3.1)
 # Print initial message
 message(STATUS "${PROJECT_DESCRIPTION}, version ${PROJECT_VERSION}")
 message(
-  STATUS "Copyright (C) 2020-2023 Heriot-Watt University, University of Oxford")
+  STATUS "Copyright (C) 2020-2024 Heriot-Watt University, University of Oxford")
 message(STATUS "All rights reserved.")
 message(STATUS "Released under the BSD 3-Clause License.")
 
