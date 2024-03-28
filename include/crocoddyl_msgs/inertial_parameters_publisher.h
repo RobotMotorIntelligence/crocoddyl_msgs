@@ -55,9 +55,17 @@ public:
         if (psi.size() != 10)
           throw std::invalid_argument(
             "Dimension of psi for body " + body_name + " is not 10");
-        pub_.msg_.parameters[i].body_name = body_name;
-        for (std::size_t j=0; j<10; ++j)
-          pub_.msg_.parameters[i].psi[j] = psi[j];
+        pub_.msg_.parameters[i].name = body_name;
+        pub_.msg_.parameters[i].inertia.m = psi[0];      
+        pub_.msg_.parameters[i].inertia.com.x = psi[1]; 
+        pub_.msg_.parameters[i].inertia.com.y = psi[2];
+        pub_.msg_.parameters[i].inertia.com.z = psi[3];
+        pub_.msg_.parameters[i].inertia.ixx = psi[4];
+        pub_.msg_.parameters[i].inertia.ixy = psi[5];
+        pub_.msg_.parameters[i].inertia.iyy = psi[6];
+        pub_.msg_.parameters[i].inertia.ixz = psi[7];
+        pub_.msg_.parameters[i].inertia.iyz = psi[8];
+        pub_.msg_.parameters[i].inertia.izz = psi[9];
         i++;
       }
       pub_.unlockAndPublish();

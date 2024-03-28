@@ -58,11 +58,18 @@ public:
     std::lock_guard<std::mutex> guard(mutex_);
 
     for (std::size_t i = 0; i<n_bodies_; ++i){
-      const std::string &name =  msg_.parameters[i].body_name;
-      for (std::size_t j = 0; j<10; ++j){
-        parameters[j] = msg_.parameters[i].psi[j];
-      }
-      parameters_map[msg_.parameters[i].body_name] = parameters;
+      const std::string &name =  msg_.parameters[i].name;
+      parameters[0] = msg_.parameters[i].inertia.m;
+      parameters[1] = msg_.parameters[i].inertia.com.x;
+      parameters[2] = msg_.parameters[i].inertia.com.y;
+      parameters[3] = msg_.parameters[i].inertia.com.z;
+      parameters[4] = msg_.parameters[i].inertia.ixx;
+      parameters[5] = msg_.parameters[i].inertia.ixy;
+      parameters[6] = msg_.parameters[i].inertia.iyy;
+      parameters[7] = msg_.parameters[i].inertia.ixz;
+      parameters[8] = msg_.parameters[i].inertia.iyz;
+      parameters[9] = msg_.parameters[i].inertia.izz;
+      parameters_map[msg_.parameters[i].name] = parameters;
     }
     // finish processing the message
     is_processing_msg_ = false;
