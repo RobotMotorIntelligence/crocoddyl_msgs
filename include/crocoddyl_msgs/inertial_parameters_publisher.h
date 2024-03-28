@@ -43,7 +43,7 @@ public:
    * @param parameters[in]    multibody inertial parameters
    */
   void
-  publish(const std::map<std::string, Eigen::Ref<const Eigen::VectorXd> > &parameters
+  publish(const std::map<std::string, const Eigen::Ref<const Eigen::VectorXd> > &parameters
           ) {
     if (parameters.size() != n_bodies_)
       throw std::invalid_argument(
