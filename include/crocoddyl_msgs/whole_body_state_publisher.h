@@ -162,8 +162,15 @@ public:
           const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s = DEFAULT_FRICTION) {
     if (pub_.trylock()) {
       pub_.msg_.header.frame_id = odom_frame_;
-      crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, q, v, a, tau, p, pd,
-                            f, s);
+      if (is_reduced_model_) {
+        fromReduced(model_, reduced_model_, qfull_, vfull_, afull_, ufull_, q, v, a, tau,
+                    qref_, joint_ids_);
+        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, qfull_,
+                              vfull_, afull_, ufull_, p, pd, f, s);
+      } else {
+        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, q, v, a, tau, p, pd,
+                              f, s);
+      }
       pub_.unlockAndPublish();
     }
   }
@@ -191,6 +198,7 @@ private:
   Eigen::VectorXd qref_;
   Eigen::VectorXd qfull_;
   Eigen::VectorXd vfull_;
+  Eigen::VectorXd afull_;
   Eigen::VectorXd ufull_;
   bool is_reduced_model_;
 
@@ -227,6 +235,7 @@ private:
       const std::size_t nv_root = model_.joints[root_joint_id].nv();
       qfull_ = Eigen::VectorXd::Zero(model_.nq);
       vfull_ = Eigen::VectorXd::Zero(model_.nv);
+      afull_ = Eigen::VectorXd::Zero(model_.nv);
       ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
     } else {
       is_reduced_model_ = false;
