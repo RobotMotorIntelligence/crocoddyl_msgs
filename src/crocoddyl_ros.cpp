@@ -285,7 +285,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            py::arg("n_bodies"),
            py::arg("topic") = "/robot/multibody_inertial_parameters")
       .def("get_inertial_parameters", &MultibodyInertialParametersRosSubscriber::get_inertial_parameters,
-           "Get the latest inertial parameters.\n\n"
+           "Get the latest multibody inertial parameters.\n\n"
            ":return: dictionary of body names and inertial parameters pair\n")
       .def("has_new_msg", &MultibodyInertialParametersRosSubscriber::has_new_msg);
 
