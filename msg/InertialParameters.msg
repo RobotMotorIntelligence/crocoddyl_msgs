@@ -1,4 +1,4 @@
-# This is a message that holds data to describe the inertial parameters of a single rigid body.
+# This message describes the inertial parameters of a single rigid body.
 #
 # The inertial parameters of a single rigid body defined by:
 #  * the name of the rigid body
