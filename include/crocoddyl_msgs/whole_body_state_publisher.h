@@ -137,6 +137,67 @@ public:
     }
   }
 
+  /**
+   * @brief Publish a whole-body state ROS message
+   *
+   * @param t[in]    Time in secs
+   * @param q[in]    Configuration vector (dimension: model.nq)
+   * @param v[in]    Generalized velocity (dimension: model.nv)
+   * @param a[in]    Generalized acceleration (dimension: model.nv)
+   * @param tau[in]  Joint effort (dimension: model.nv)
+   * @param p[in]    Contact position
+   * @param pd[in]   Contact velocity
+   * @param f[in]    Contact force, type and status
+   * @param s[in]    Contact surface and friction coefficient
+   */
+  void
+  publish(const double t, const Eigen::Ref<const Eigen::VectorXd> &q,
+          const Eigen::Ref<const Eigen::VectorXd> &v,
+          const Eigen::Ref<const Eigen::VectorXd> &a,
+          const Eigen::Ref<const Eigen::VectorXd> &tau,
+          const std::map<std::string, pinocchio::SE3> &p = DEFAULT_SE3,
+          const std::map<std::string, pinocchio::Motion> &pd  = DEFAULT_MOTION,
+          const std::map<std::string, std::tuple<pinocchio::Force, ContactType,
+                                                 ContactStatus>> &f = DEFAULT_FORCE,
+          const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s = DEFAULT_FRICTION) {
+    if (pub_.trylock()) {
+      pub_.msg_.header.frame_id = odom_frame_;
+      if (is_reduced_model_) {
+        fromReduced(model_, reduced_model_, qfull_, vfull_, afull_, ufull_, q, v, a, tau,
+                    qref_, joint_ids_);
+        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, qfull_,
+                              vfull_, afull_, ufull_, p, pd, f, s);
+      } else {
+        crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, q, v, a, tau, p, pd,
+                              f, s);
+      }
+      pub_.unlockAndPublish();
+    }
+  }
+  
+  /**
+   * @brief updates the inertial parameters of the pinocchio model
+   *
+   * @param body_name[in] name of the desired body to update the inertial parameters
+   * @param psi[in]       Vector containing the inertial parameters
+   */
+  void update_model_inertial_parameters(const std::string &body_name, const Eigen::Ref<const Eigen::VectorXd> &psi){
+    unsigned int id =  model_.getJointId(body_name);
+    model_.inertias[id] = temp_Inertia_.FromDynamicParameters(psi);
+  }
+
+  /**
+   * @brief returns the inertial parameters of the pinocchio model
+   *
+   * @param body_name[in] name of the desired body to get the inertial parameters
+   * @return psi[in]       Vector containing the inertial parameters
+   */
+  const Eigen::VectorXd get_model_inertial_parameters(const std::string &body_name){
+    unsigned int id =  model_.getJointId(body_name);
+    const Eigen::VectorXd psi = model_.inertias[id].toDynamicParameters();
+    return psi;
+  }
+
 private:
 #ifdef ROS2
   rclcpp::Node node_;
@@ -151,8 +212,10 @@ private:
   Eigen::VectorXd qref_;
   Eigen::VectorXd qfull_;
   Eigen::VectorXd vfull_;
+  Eigen::VectorXd afull_;
   Eigen::VectorXd ufull_;
   bool is_reduced_model_;
+  pinocchio::Inertia temp_Inertia_;
 
   void init(const std::vector<std::string> &locked_joints = DEFAULT_VECTOR) {
     a_.setZero();
@@ -187,6 +250,7 @@ private:
       const std::size_t nv_root = model_.joints[root_joint_id].nv();
       qfull_ = Eigen::VectorXd::Zero(model_.nq);
       vfull_ = Eigen::VectorXd::Zero(model_.nv);
+      afull_ = Eigen::VectorXd::Zero(model_.nv);
       ufull_ = Eigen::VectorXd::Zero(model_.nv - nv_root);
     } else {
       is_reduced_model_ = false;

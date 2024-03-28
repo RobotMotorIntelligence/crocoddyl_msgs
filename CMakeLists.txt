@@ -13,7 +13,7 @@ set(PROJECT_VERSION 1.3.1)
 # Print initial message
 message(STATUS "${PROJECT_DESCRIPTION}, version ${PROJECT_VERSION}")
 message(
-  STATUS "Copyright (C) 2020-2023 Heriot-Watt University, University of Oxford")
+  STATUS "Copyright (C) 2020-2024 Heriot-Watt University, University of Oxford")
 message(STATUS "All rights reserved.")
 message(STATUS "Released under the BSD 3-Clause License.")
 
@@ -47,6 +47,8 @@ if($ENV{ROS_VERSION} EQUAL 2) # ROS 2
     "msg/FeedbackGain.msg"
     "msg/SolverStatistics.msg"
     "msg/SolverTrajectory.msg"
+    "msg/InertialParameters.msg"
+    "msg/MultibodyInertialParameters.msg"
     DEPENDENCIES
     std_msgs
     whole_body_state_msgs)
@@ -93,8 +95,10 @@ else() # ROS 1
     Control.msg
     FeedbackGain.msg
     SolverStatistics.msg
-    SolverTrajectory.msg)
-  generate_messages(DEPENDENCIES std_msgs whole_body_state_msgs)
+    SolverTrajectory.msg
+    InertialParameters.msg
+    MultibodyInertialParameters.msg)
+    generate_messages(DEPENDENCIES std_msgs whole_body_state_msgs)
   # Define catkin dependencies
   catkin_package(
     INCLUDE_DIRS

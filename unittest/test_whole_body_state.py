@@ -91,7 +91,7 @@ class TestWholeBodyState(unittest.TestCase):
         v = np.random.rand(model.nv)
         tau = np.random.rand(model.nv - 6)
         while True:
-            pub.publish(self.t, q, v, tau)
+            pub.publish(self.t, q=q, v=v, tau=tau)
             if sub.has_new_msg():
                 break
         # get whole-body state
@@ -265,6 +265,36 @@ class TestWholeBodyState(unittest.TestCase):
             )
             self.assertEqual(
                 S[1], _S[1], "Wrong contact friction coefficient at " + name
+            )
+
+    def test_update_model(self):
+        model = pinocchio.buildSampleModelHumanoid()
+        pub = WholeBodyStateRosPublisher(model, "whole_body_state_update_model")
+        sub = WholeBodyStateRosPublisher(model, "whole_body_state_update_model")
+        time.sleep(1)
+        # publish whole-body state messages
+        names = model.names.tolist()
+        new_parameters = []
+        for name in names:
+            psi = pinocchio.Inertia().Random().toDynamicParameters()
+            new_parameters.append(psi)
+            pub.update_model_inertial_parameters(name, psi)
+            sub.update_model_inertial_parameters(name, psi)
+
+        for i, name in enumerate(names):
+            self.assertTrue(
+                np.allclose(pub.get_model_inertial_parameters(name),
+                            new_parameters[i], atol=1e-9),
+                "Wrong pub inerital parameters in body " + name + "\n" +
+                "desired:\n" + str(new_parameters[i]) +
+                "obtained:\n" + str(pub.get_model_inertial_parameters(name)),
+            )
+            self.assertTrue(
+                np.allclose(sub.get_model_inertial_parameters(name),
+                            new_parameters[i], atol=1e-9),
+                "Wrong sub inerital parameters in body " + name + "\n" +
+                "desired:\n" + str(new_parameters[i]) +
+                "obtained:\n" + str(pub.get_model_inertial_parameters(name)),
             )
 
 if __name__ == "__main__":
