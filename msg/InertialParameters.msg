@@ -7,5 +7,5 @@
 
 # Body name
 string name
-# This represents the vector containing the dynamic parameters
-float64[10] psi
+# Body inertia
+geometry_msgs/Inertia inertia
