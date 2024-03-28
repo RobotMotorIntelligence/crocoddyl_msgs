@@ -27,12 +27,9 @@ public:
    * @param[in] topic     Topic name
    */
   MultibodyInertialParametersRosPublisher(
-      const unsigned int n_bodies,
-      const std::string &topic = "/robot/multibody_inertial_parameters"):
-      n_bodies_(n_bodies) {
+      const std::string &topic = "/crocoddyl/inertial_parameters"){
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
-    pub_.msg_.parameters.resize(n_bodies_);
   }
 
   ~MultibodyInertialParametersRosPublisher() = default;
@@ -45,9 +42,9 @@ public:
   void
   publish(const std::map<std::string, const Eigen::Ref<const Eigen::VectorXd> > &parameters
           ) {
-    if (parameters.size() != n_bodies_)
-      throw std::invalid_argument(
-        "Dimension of parameters does not match n_bodies_.");
+    const std::size_t n_bodies = parameters.size();
+    pub_.msg_.parameters.resize(n_bodies);
+
     if (pub_.trylock()) {
       pub_.msg_.header.stamp = ros::Time::now();
       unsigned int i = 0;
@@ -73,7 +70,6 @@ public:
   }
 
 private:
-  unsigned int n_bodies_;
   realtime_tools::RealtimePublisher<MultibodyInertialParameters> pub_;
 };
 

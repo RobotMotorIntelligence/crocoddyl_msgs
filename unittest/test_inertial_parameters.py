@@ -31,8 +31,8 @@ class TestInertialParameters(unittest.TestCase):
 
     def test_communication(self):
         model = pinocchio.buildSampleModelHumanoid()
-        pub = MultibodyInertialParametersRosPublisher(model.nbodies, "inertial_parameters")
-        sub = MultibodyInertialParametersRosSubscriber(model.nbodies, "inertial_parameters")
+        pub = MultibodyInertialParametersRosPublisher("inertial_parameters")
+        sub = MultibodyInertialParametersRosSubscriber("inertial_parameters")
         time.sleep(1)
         # create the name index
         parameters = {}
@@ -46,7 +46,7 @@ class TestInertialParameters(unittest.TestCase):
             if sub.has_new_msg():
                 break
         
-        _parameters = sub.get_inertial_parameters()
+        _parameters = sub.get_parameters()
         for i in range(model.nbodies):
             self.assertTrue(np.allclose(_parameters[names[i]], parameters[names[i]], atol=1e-9), "Wrong parameters in " + names[i])
 

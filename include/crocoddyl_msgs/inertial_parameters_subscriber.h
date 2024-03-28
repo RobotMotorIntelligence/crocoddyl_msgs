@@ -17,6 +17,7 @@
 typedef crocoddyl_msgs::MultibodyInertialParameters MultibodyInertialParameters;
 typedef const crocoddyl_msgs::MultibodyInertialParameters::ConstPtr
     &MultibodyInertialParametersSharedPtr;
+typedef Eigen::Matrix<double, 10, 1> Vector10d;
 namespace crocoddyl_msgs {
 
 
@@ -27,18 +28,15 @@ public:
   /**
    * @brief Initialize the multi-body inertial parameters subscriber.
    *
-   * @param[in] n_bodies  Number of bodies
    * @param[in] topic     Topic name
    */
   MultibodyInertialParametersRosSubscriber(
-      const unsigned int n_bodies,
-      const std::string &topic = "/robot/multibody_inertial_parameters"):
-      n_bodies_(n_bodies), spinner_(2), has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
+      const std::string &topic = "/crocoddyl/inertial_parameters"):
+      spinner_(2), has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
     ros::NodeHandle n;
     sub_ = n.subscribe<MultibodyInertialParameters>(
         topic, 1, &MultibodyInertialParametersRosSubscriber::callback, this,
         ros::TransportHints().tcpNoDelay());
-    parameters.resize(10);
     spinner_.start();
     ROS_INFO_STREAM("Subscribing MultibodyInertialParameters messages on " << topic);
   }
@@ -51,30 +49,31 @@ public:
    * @return  A map from body names to inertial parameters.
    */
   
-  std::map<std::string, Eigen::VectorXd>
-  get_inertial_parameters() {
+  std::map<std::string, Vector10d>
+  get_parameters() {
     // start processing the message
     is_processing_msg_ = true;
     std::lock_guard<std::mutex> guard(mutex_);
-
-    for (std::size_t i = 0; i<n_bodies_; ++i){
+    
+    const std::size_t n_bodies = msg_.parameters.size();
+    for (std::size_t i = 0; i<n_bodies; ++i){
       const std::string &name =  msg_.parameters[i].name;
-      parameters[0] = msg_.parameters[i].inertia.m;
-      parameters[1] = msg_.parameters[i].inertia.com.x;
-      parameters[2] = msg_.parameters[i].inertia.com.y;
-      parameters[3] = msg_.parameters[i].inertia.com.z;
-      parameters[4] = msg_.parameters[i].inertia.ixx;
-      parameters[5] = msg_.parameters[i].inertia.ixy;
-      parameters[6] = msg_.parameters[i].inertia.iyy;
-      parameters[7] = msg_.parameters[i].inertia.ixz;
-      parameters[8] = msg_.parameters[i].inertia.iyz;
-      parameters[9] = msg_.parameters[i].inertia.izz;
-      parameters_map[msg_.parameters[i].name] = parameters;
+      p_tmp_[0] = msg_.parameters[i].inertia.m;
+      p_tmp_[1] = msg_.parameters[i].inertia.com.x;
+      p_tmp_[2] = msg_.parameters[i].inertia.com.y;
+      p_tmp_[3] = msg_.parameters[i].inertia.com.z;
+      p_tmp_[4] = msg_.parameters[i].inertia.ixx;
+      p_tmp_[5] = msg_.parameters[i].inertia.ixy;
+      p_tmp_[6] = msg_.parameters[i].inertia.iyy;
+      p_tmp_[7] = msg_.parameters[i].inertia.ixz;
+      p_tmp_[8] = msg_.parameters[i].inertia.iyz;
+      p_tmp_[9] = msg_.parameters[i].inertia.izz;
+      parameters_[msg_.parameters[i].name] = p_tmp_;
     }
     // finish processing the message
     is_processing_msg_ = false;
     has_new_msg_ = false;
-    return parameters_map;
+    return parameters_;
   }
 
   /**
@@ -93,9 +92,8 @@ private:
   bool is_processing_msg_; //!< Indicate when we are processing the message
   double last_msg_time_;
 
-  unsigned int n_bodies_;
-  Eigen::VectorXd parameters;
-  std::map<std::string, Eigen::VectorXd> parameters_map;
+  Vector10d p_tmp_;
+  std::map<std::string, Vector10d> parameters_;
 
   void callback(MultibodyInertialParametersSharedPtr msg) {
     if (!is_processing_msg_) {
