@@ -48,7 +48,7 @@ public:
   /**
    * @brief Get the latest inertial parameters
    *
-   * @return  An std mape with the pair of body name, inertial parameters
+   * @return  A map from body names to inertial parameters.
    */
   
   std::map<std::string, Eigen::VectorXd>
