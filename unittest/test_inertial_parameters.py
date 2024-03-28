@@ -16,8 +16,12 @@ import unittest
 import numpy as np
 import pinocchio
 
-import rospy
-import rosunit
+ROS_VERSION = int(os.environ["ROS_VERSION"])
+if ROS_VERSION == 2:
+    import rclpy
+else:
+    import rospy
+    import rosunit
 
 from crocoddyl_ros import (
     MultibodyInertialParametersRosPublisher,
@@ -27,7 +31,11 @@ from crocoddyl_ros import (
 
 class TestInertialParameters(unittest.TestCase):
     def setUp(self):
-        rospy.init_node("crocoddyl_ros", anonymous=True)
+        if ROS_VERSION == 2:
+            if not rclpy.ok():
+                rclpy.init()
+        else:
+            rospy.init_node("crocoddyl_ros", anonymous=True)
 
     def test_communication(self):
         model = pinocchio.buildSampleModelHumanoid()
@@ -51,4 +59,7 @@ class TestInertialParameters(unittest.TestCase):
             self.assertTrue(np.allclose(_parameters[names[i]], parameters[names[i]], atol=1e-9), "Wrong parameters in " + names[i])
 
 if __name__ == "__main__":
-    rosunit.unitrun("crocoddyl_msgs", "inertial_parameters", TestInertialParameters)
+    if ROS_VERSION == 2:
+        unittest.main()
+    else:
+        rosunit.unitrun("crocoddyl_msgs", "inertial_parameters", TestInertialParameters)

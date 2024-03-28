@@ -11,7 +11,11 @@
 
 #include <realtime_tools/realtime_publisher.h>
 
+#ifdef ROS2
+#include <rclcpp/rclcpp.hpp>
+#else
 #include <ros/node_handle.h>
+#endif
 #include "crocoddyl_msgs/MultibodyInertialParameters.h"
 
 typedef crocoddyl_msgs::MultibodyInertialParameters MultibodyInertialParameters;
@@ -20,17 +24,31 @@ namespace crocoddyl_msgs {
 
 class MultibodyInertialParametersRosPublisher {
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  typedef Eigen::Matrix<double, 10, 1> Vector10d;
   /**
    * @brief Initialize the multi-body inertial parameters publisher.
    *
-   * @param[in] n_bodies  Number of bodies
    * @param[in] topic     Topic name
    */
   MultibodyInertialParametersRosPublisher(
-      const std::string &topic = "/crocoddyl/inertial_parameters"){
+      const std::string &topic = "/crocoddyl/inertial_parameters")
+#ifdef ROS2
+      : node_("inertial_parameters_publisher"),
+        pub_(node_.create_publisher<MultibodyInertialParameters>(topic, 1)) {
+    RCLCPP_INFO_STREAM(node_.get_logger(),
+                       "Publishing MultibodyInertialParameters messages on "
+                           << topic);
+        }
+#else
+      {
     ros::NodeHandle n;
     pub_.init(n, topic, 1);
-  }
+    ROS_INFO_STREAM("Publishing MultibodyInertialParameters messages on "
+                    << topic);
+      }
+#endif
+      
 
   ~MultibodyInertialParametersRosPublisher() = default;
 

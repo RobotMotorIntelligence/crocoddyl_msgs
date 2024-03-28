@@ -12,7 +12,11 @@
 #include "crocoddyl_msgs/MultibodyInertialParameters.h"
 
 #include <mutex>
+#ifdef ROS2
+#include <rclcpp/rclcpp.hpp>
+#else
 #include <ros/node_handle.h>
+#endif
 
 typedef crocoddyl_msgs::MultibodyInertialParameters MultibodyInertialParameters;
 typedef const crocoddyl_msgs::MultibodyInertialParameters::ConstPtr
@@ -25,13 +29,26 @@ class MultibodyInertialParametersRosSubscriber {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  /**
+   /**
    * @brief Initialize the multi-body inertial parameters subscriber.
    *
    * @param[in] topic     Topic name
    */
   MultibodyInertialParametersRosSubscriber(
       const std::string &topic = "/crocoddyl/inertial_parameters"):
+#ifdef ROS2
+      : node_(rclcpp::Node::make_shared("inertia_parameters_subscriber")),
+        sub_(node_->create_subscription<MultibodyInertialParameters>(
+            topic, 1,
+            std::bind(&MultibodyInertialParametersRosSubscriber::callback, this,
+                      std::placeholders::_1))),
+        has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
+    spinner_.add_node(node_);
+    thread_ = std::thread([this]() { this->spin(); });
+    thread_.detach();
+    RCLCPP_INFO_STREAM(node_->get_logger(),
+                       "Subscribing MultibodyInertialParameters messages on " << topic);
+#else 
       spinner_(2), has_new_msg_(false), is_processing_msg_(false), last_msg_time_(0.) {
     ros::NodeHandle n;
     sub_ = n.subscribe<MultibodyInertialParameters>(
@@ -39,6 +56,7 @@ public:
         ros::TransportHints().tcpNoDelay());
     spinner_.start();
     ROS_INFO_STREAM("Subscribing MultibodyInertialParameters messages on " << topic);
+#endif
   }
 
   ~MultibodyInertialParametersRosSubscriber() = default;
@@ -82,9 +100,17 @@ public:
   bool has_new_msg() const { return has_new_msg_; }
 
 private:
+#ifdef ROS2
+  std::shared_ptr<rclcpp::Node> node_;
+  rclcpp::executors::SingleThreadedExecutor spinner_;
+  std::thread thread_;
+  void spin() { spinner_.spin(); }
+  rclcpp::Subscription<MultibodyInertialParameters>::SharedPtr sub_; //!< ROS subscriber
+#else
   ros::NodeHandle node_;
   ros::AsyncSpinner spinner_;
   ros::Subscriber sub_; //!< ROS subscriber
+#endif
   std::mutex mutex_;      ///< Mutex to prevent race condition on callback
   MultibodyInertialParameters msg_;    //!< ROS message
 
@@ -97,7 +123,11 @@ private:
 
   void callback(MultibodyInertialParametersSharedPtr msg) {
     if (!is_processing_msg_) {
+#ifdef ROS2
+      double t = rclcpp::Time(msg->header.stamp).seconds();
+#else
       double t = msg->header.stamp.toNSec();
+#endif
       // Avoid out of order arrival and ensure each message is newer (or equal
       // to) than the preceeding:
       if (last_msg_time_ <= t) {
@@ -106,9 +136,16 @@ private:
         has_new_msg_ = true;
         last_msg_time_ = t;
       } else {
+#ifdef ROS2
+        RCLCPP_WARN_STREAM(node_->get_logger(),
+                           "Out of order message. Last timestamp: "
+                               << std::fixed << last_msg_time_
+                               << ", current timestamp: " << t);
+#else
         ROS_WARN_STREAM("Out of order message. Last timestamp: "
                         << std::fixed << last_msg_time_
                         << ", current timestamp: " << t);
+#endif
       }
     }
   }
