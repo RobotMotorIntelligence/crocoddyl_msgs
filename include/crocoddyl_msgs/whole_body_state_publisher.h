@@ -155,11 +155,11 @@ public:
           const Eigen::Ref<const Eigen::VectorXd> &v,
           const Eigen::Ref<const Eigen::VectorXd> &a,
           const Eigen::Ref<const Eigen::VectorXd> &tau,
-          const std::map<std::string, pinocchio::SE3> &p,
-          const std::map<std::string, pinocchio::Motion> &pd,
+          const std::map<std::string, pinocchio::SE3> &p = DEFAULT_SE3,
+          const std::map<std::string, pinocchio::Motion> &pd  = DEFAULT_MOTION,
           const std::map<std::string, std::tuple<pinocchio::Force, ContactType,
-                                                 ContactStatus>> &f,
-          const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s) {
+                                                 ContactStatus>> &f = DEFAULT_FORCE,
+          const std::map<std::string, std::pair<Eigen::Vector3d, double>> &s = DEFAULT_FRICTION) {
     if (pub_.trylock()) {
       pub_.msg_.header.frame_id = odom_frame_;
       crocoddyl_msgs::toMsg(model_, data_, pub_.msg_, t, q, v, a, tau, p, pd,
