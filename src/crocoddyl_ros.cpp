@@ -274,7 +274,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            py::arg("n_bodies"),
            py::arg("topic") = "/robot/multibody_inertial_parameters")
       .def("publish", &MultibodyInertialParametersRosPublisher::publish,
-           "Publish a whole-body state ROS message.\n\n"
+           "Publish a multibody inertia ROS message.\n\n"
            ":param parameters: multibody inertial parameters",
            py::arg("parameters"));
 
