@@ -176,12 +176,26 @@ public:
   }
   
   /**
-   * @brief Returns a pointer to the pinocchio model
+   * @brief updates the inertial parameters of the pinocchio model
    *
-   * @return pointer to the pinocchio model
+   * @param body_name[in] name of the desired body to update the inertial parameters
+   * @param psi[in]       Vector containing the inertial parameters
    */
-  pinocchio::Model* get_pinocchio_model(){
-    return &model_;
+  void update_model_inertial_parameters(const std::string &body_name, const Eigen::Ref<const Eigen::VectorXd> &psi){
+    unsigned int id =  model_.getJointId(body_name);
+    model_.inertias[id] = temp_Inertia_.FromDynamicParameters(psi);
+  }
+
+  /**
+   * @brief returns the inertial parameters of the pinocchio model
+   *
+   * @param body_name[in] name of the desired body to get the inertial parameters
+   * @return psi[in]       Vector containing the inertial parameters
+   */
+  const Eigen::VectorXd get_model_inertial_parameters(const std::string &body_name){
+    unsigned int id =  model_.getJointId(body_name);
+    const Eigen::VectorXd psi = model_.inertias[id].toDynamicParameters();
+    return psi;
   }
 
 private:
@@ -201,6 +215,7 @@ private:
   Eigen::VectorXd afull_;
   Eigen::VectorXd ufull_;
   bool is_reduced_model_;
+  pinocchio::Inertia temp_Inertia_;
 
   void init(const std::vector<std::string> &locked_joints = DEFAULT_VECTOR) {
     a_.setZero();

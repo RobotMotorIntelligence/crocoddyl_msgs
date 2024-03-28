@@ -174,7 +174,7 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param f: contact force, type and status\n"
            ":param s: contact surface and friction coefficient",
            py::arg("t"), py::arg("q"), py::arg("v"), py::arg("tau"),
-           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"))
+           py::arg("p") = DEFAULT_SE3, py::arg("pd") = DEFAULT_MOTION, py::arg("f") = DEFAULT_FORCE, py::arg("s") = DEFAULT_FORCE)
      .def("publish", static_cast<void (WholeBodyStateRosPublisher::*)(const double, const Eigen::Ref<const Eigen::VectorXd> &,  const Eigen::Ref<const Eigen::VectorXd> &, 
       const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &, const std::map<std::string, pinocchio::SE3> &,
       const std::map<std::string, pinocchio::Motion> &, const std::map<std::string, std::tuple<pinocchio::Force, ContactType, ContactStatus>> &,
@@ -190,7 +190,17 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            ":param f: contact force, type and status\n"
            ":param s: contact surface and friction coefficient",
            py::arg("t"), py::arg("q"), py::arg("v"), py::arg("a"), py::arg("tau"),
-           py::arg("p"), py::arg("pd"), py::arg("f"), py::arg("s"));
+           py::arg("p") = DEFAULT_SE3, py::arg("pd") = DEFAULT_MOTION, py::arg("f") = DEFAULT_FORCE, py::arg("s") = DEFAULT_FORCE)
+     .def("update_model_inertial_parameters", &WholeBodyStateRosPublisher::update_model_inertial_parameters,
+           "Update the inertial parameters of the pinocchio model.\n\n"
+           ":param body_name: name of the desired body to update the inertial parameters\n"
+           ":param psi: Vector containing the inertial parameters\n",
+           py::arg("body_name"), py::arg("psi"))
+     .def("get_model_inertial_parameters", &WholeBodyStateRosPublisher::get_model_inertial_parameters,
+           "Returns the inertial parameters of the pinocchio model.\n\n"
+           ":param body_name: name of the desired body to get the inertial parameters\n"
+           ":return psi: Vector containing the inertial parameters\n",
+           py::arg("body_name"));
 
 
   py::class_<WholeBodyStateRosSubscriber,
@@ -214,7 +224,17 @@ PYBIND11_MODULE(crocoddyl_ros, m) {
            "joint effort, contact position, contact velocity, contact force\n"
            "(wrench, type and status), and contact surface (norm and friction\n"
            "coefficient).")
-      .def("has_new_msg", &WholeBodyStateRosSubscriber::has_new_msg);
+      .def("has_new_msg", &WholeBodyStateRosSubscriber::has_new_msg)
+      .def("update_model_inertial_parameters", &WholeBodyStateRosSubscriber::update_model_inertial_parameters,
+           "Update the inertial parameters of the pinocchio model.\n\n"
+           ":param body_name: name of the desired body to update the inertial parameters\n"
+           ":param psi: Vector containing the inertial parameters\n",
+           py::arg("body_name"), py::arg("psi"))
+      .def("get_model_inertial_parameters", &WholeBodyStateRosSubscriber::get_model_inertial_parameters,
+           "Returns the inertial parameters of the pinocchio model.\n\n"
+           ":param body_name: name of the desired body to get the inertial parameters\n"
+           ":return psi: Vector containing the inertial parameters\n",
+           py::arg("body_name"));
 
   py::class_<WholeBodyTrajectoryRosPublisher,
              std::unique_ptr<WholeBodyTrajectoryRosPublisher, py::nodelete>>(
